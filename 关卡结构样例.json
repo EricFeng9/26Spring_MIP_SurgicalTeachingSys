@@ -1,0 +1,117 @@
+{
+    "case_id": "L2_001", 
+    "// case_id": "关卡唯一编号。示例里表示：2级难度、第001题。",
+    "level": 2,
+    "// level": "难度等级。这里用 1~5。",
+    "source_type": "hybrid",
+    "// source_type": "数据来源类型。real=真实病例，synthetic=完全合成，hybrid=真实+合成混合加工。",
+    "disease_type": "peripheral_retinal_tear",
+    "// disease_type": "病变类型英文标签，可以有多个标签，便于程序统一处理。",
+    "disease_type_cn": "周边视网膜裂孔",
+    "// disease_type_cn": "病变类型中文名，便于界面展示。",
+    "teaching_goal": [
+      "识别该病例需要光凝治疗",
+      "完成一次试打并根据反应调整功率",
+      "在安全区域内完成包绕式光凝"
+    ],
+    "// teaching_goal": "本题主要想训练学生什么能力。",
+    "case_summary_text": "患者，男，46岁，主诉飞蚊感加重3天。检查见右眼上颞周边部可见裂孔样病灶，周围视网膜变薄，建议评估是否行激光光凝治疗。",
+    "// case_summary_text": "展示给玩家的病例文本。",
+    "eye_laterality": "right",
+    "// eye_laterality": "左右眼。right=右眼，left=左眼。",
+    "preop_image_path": "cases/L2_RH_001/preop_fundus.png",
+    "// preop_image_path": "术前眼底图路径。",
+    "preop_image_meta": {
+      "width": 1536,
+      "height": 1536,
+      "fov": "wide",
+      "color_profile": "standard"
+    },
+    "// preop_image_meta": "术前图的基础信息。width/height 是分辨率；fov 是视野范围;color_profile是色彩配置",
+    "lesion_annotations": [
+      {
+        "lesion_id": "lesion_01",
+        "lesion_type": "retinal_tear",
+        "lesion_type_cn": "视网膜裂孔",
+        "location_desc": "上颞周边部",
+        "mask_path": "cases/L2_RH_001/masks/lesion_01_mask.png",
+        "bbox": [1020, 320, 180, 140],
+        "risk_level": "medium"
+      }
+    ],
+    "// lesion_annotations": "病灶标注信息。mask_path 是病灶区域；bbox 是矩形框 [x,y,w,h];risk_level是风险等级",
+    "danger_zone_annotations": [
+      {
+        "zone_name": "macula",
+        "zone_name_cn": "黄斑区",
+        "mask_path": "cases/L2_RH_001/masks/macula_mask.png"
+      },
+      {
+        "zone_name": "optic_disc",
+        "zone_name_cn": "视盘区",
+        "mask_path": "cases/L2_RH_001/masks/optic_disc_mask.png"
+      }
+    ],
+    "// danger_zone_annotations": "危险区标注，后面做安全评分会用到。",
+    "decision_gt": {
+      "recommended_action": "photocoagulation",
+      "recommended_action_cn": "进行光凝",
+      "reason_brief": "该裂孔存在进展风险，建议及时进行包绕式光凝治疗。"
+    },
+    "// decision_gt": "标准决策答案。",
+    "laser_gt": {
+      "wavelength_nm": 532,
+      "power_mw_range": [180, 240],
+      "spot_size_um_range": [100, 200],
+      "duration_ms_range": [80, 120],
+      "target_burn_grade": "II-III"
+    },
+    "// laser_gt": "标准参数范围，不一定只给单值，范围更适合教学。",
+    "trial_shot_gt": {
+      "required": true,
+      "recommended_start_point": [980, 410],
+      "expected_adjustment_logic": "若试打光斑偏淡，可小幅增加功率；若偏白，应降低功率或缩短曝光时间。"
+    },
+    "// trial_shot_gt": "试打要求和标准调参思路。",
+    "treatment_plan_gt": {
+      "plan_type": "barrier",
+      "plan_type_cn": "包绕式光凝",
+      "treatment_mask_path": "cases/L2_RH_001/masks/treatment_mask.png",
+      "recommended_shot_count_range": [18, 28],
+      "recommended_spacing_desc": "光斑间距均匀，避免明显重叠或间隔过大"
+    },
+    "// treatment_plan_gt": "标准治疗区域和大致打点要求。",
+    "shot_gt_example": [
+      {
+        "shot_id": "shot_001",
+        "center_xy": [960, 430],
+        "expected_grade": "II",
+        "role": "trial"
+      },
+      {
+        "shot_id": "shot_002",
+        "center_xy": [1010, 360],
+        "expected_grade": "II-III",
+        "role": "treatment"
+      }
+    ],
+    "// shot_gt_example": "标准打点示例，可选。不是必须逐点唯一答案，但可提供参考。",
+    "postop_image_gt_path": "cases/L2_RH_001/postop_gt.png",
+    "// postop_image_gt_path": "标准术后图路径。",
+    "common_error_tags": [
+      "power_too_high",
+      "insufficient_coverage",
+      "too_close_to_lesion_edge"
+    ],
+    "// common_error_tags": "本题最常见错误标签，便于模型2重点关注。",
+    "feedback_knowledge": {
+      "good_performance_hint": "能先试打并将光斑控制在 II-III 级，通常说明参数控制较好。",
+      "risk_hint": "若光斑过白或范围过靠近危险区，需优先考虑安全性。",
+      "teaching_tip": "本题重点不是打得越多越好，而是形成连续、完整、位置合适的包绕。"
+    },
+    "// feedback_knowledge": "给教学复盘agent用的讲评知识点。",
+    "review_status": "draft",
+    "// review_status": "题库审核状态。draft=待审核，approved=已通过专家审核。",
+    "reviewer_notes": "",
+    "// reviewer_notes": "专家审核备注。"
+  }

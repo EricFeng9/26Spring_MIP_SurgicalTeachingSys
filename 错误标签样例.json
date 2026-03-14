@@ -1,0 +1,153 @@
+{
+    "error_tag_system_demo": {
+      "decision_errors": {
+        "cn_name": "决策类错误",
+        "tags": [
+          {
+            "tag": "wrong_treat_vs_observe",
+            "cn": "治疗/观察决策错误",
+            "desc": "本应光凝却选择观察，或本应观察却进行了光凝"
+          },
+          {
+            "tag": "wrong_disease_understanding",
+            "cn": "对病变理解偏差",
+            "desc": "对病例性质理解不准确，导致后续方案整体偏离"
+          }
+        ]
+      },
+  
+      "parameter_errors": {
+        "cn_name": "参数类错误",
+        "tags": [
+          {
+            "tag": "wavelength_inappropriate",
+            "cn": "波长选择不合适",
+            "desc": "选择的波长与当前病变或教学标准不匹配"
+          },
+          {
+            "tag": "power_too_high",
+            "cn": "功率过高",
+            "desc": "容易造成光斑过白、过凝或并发症风险增加"
+          },
+          {
+            "tag": "power_too_low",
+            "cn": "功率过低",
+            "desc": "可能导致光凝效果不足"
+          },
+          {
+            "tag": "spot_size_too_large",
+            "cn": "光斑过大",
+            "desc": "可能影响精细控制，增加波及周边组织的风险"
+          },
+          {
+            "tag": "spot_size_too_small",
+            "cn": "光斑过小",
+            "desc": "可能导致覆盖不足，治疗效率降低"
+          },
+          {
+            "tag": "duration_too_long",
+            "cn": "曝光时间过长",
+            "desc": "可能增加灼伤程度和过凝风险"
+          },
+          {
+            "tag": "duration_too_short",
+            "cn": "曝光时间过短",
+            "desc": "可能导致光斑反应不足"
+          }
+        ]
+      },
+  
+      "trial_adjustment_errors": {
+        "cn_name": "试打与调参错误",
+        "tags": [
+          {
+            "tag": "no_trial_shot",
+            "cn": "未进行试打",
+            "desc": "未先试打就直接进入正式治疗"
+          },
+          {
+            "tag": "misread_burn_grade",
+            "cn": "误判光斑等级",
+            "desc": "对试打光斑反应等级理解不准确"
+          },
+          {
+            "tag": "adjustment_direction_wrong",
+            "cn": "调参方向错误",
+            "desc": "明明应降低能量却继续升高，或反之"
+          },
+          {
+            "tag": "insufficient_adjustment",
+            "cn": "调参幅度不足",
+            "desc": "意识到问题但调整不够，效果仍不理想"
+          },
+          {
+            "tag": "over_adjustment",
+            "cn": "调参过度",
+            "desc": "为纠正问题而一次调整过大，导致新的偏差"
+          }
+        ]
+      },
+  
+      "coverage_layout_errors": {
+        "cn_name": "范围与布局错误",
+        "tags": [
+          {
+            "tag": "insufficient_coverage",
+            "cn": "覆盖不足",
+            "desc": "目标治疗区域未完整覆盖"
+          },
+          {
+            "tag": "overtreatment_area",
+            "cn": "治疗范围过大",
+            "desc": "超出推荐治疗区域"
+          },
+          {
+            "tag": "missed_lesion_margin",
+            "cn": "病灶边缘漏打",
+            "desc": "关键边界未形成足够连续的治疗带"
+          },
+          {
+            "tag": "shot_spacing_too_dense",
+            "cn": "光斑过密",
+            "desc": "光斑间距过小，可能增加组织损伤"
+          },
+          {
+            "tag": "shot_spacing_too_sparse",
+            "cn": "光斑过疏",
+            "desc": "光斑间隔过大，治疗连续性不足"
+          },
+          {
+            "tag": "poor_pattern_layout",
+            "cn": "整体布局不合理",
+            "desc": "打点排列杂乱，不符合标准治疗模式"
+          }
+        ]
+      },
+  
+      "safety_errors": {
+        "cn_name": "安全性错误",
+        "tags": [
+          {
+            "tag": "entered_danger_zone",
+            "cn": "侵入危险区",
+            "desc": "打点进入黄斑、视盘或其他不应触及区域"
+          },
+          {
+            "tag": "overcoagulation_risk",
+            "cn": "过凝风险",
+            "desc": "光斑反应过强，存在组织损伤风险"
+          },
+          {
+            "tag": "bleeding_risk",
+            "cn": "出血风险",
+            "desc": "参数或位置选择不当，增加出血概率"
+          },
+          {
+            "tag": "bubble_risk",
+            "cn": "气泡风险",
+            "desc": "能量过高导致不良反应风险上升"
+          }
+        ]
+      }
+    }
+  }
