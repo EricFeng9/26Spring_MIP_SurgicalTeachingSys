@@ -1,0 +1,53 @@
+# 这部分忽略Unity自动生成的缓存和编译目录
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# 忽略内存捕获和录制文件（体积过大）
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# 忽略 IDE 和编辑器生成的缓存与配置文件
+.vs/
+.gradle/
+.vscode/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# 忽略自动生成的 meta 文件
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# 忽略崩溃报告
+sysinfo.txt
+
+# 忽略打包后的构建文件
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# 忽略系统级隐藏文件
+.DS_Store
+Thumbs.db
+
+[Aa]ssets/TextMesh Pro/Examples & Extras/
