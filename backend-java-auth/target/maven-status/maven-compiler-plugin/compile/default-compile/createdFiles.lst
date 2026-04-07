@@ -1,0 +1,11 @@
+com\retinal\auth\AuthHttpServer$JsonPostHandler.class
+com\retinal\auth\AuthHttpServer$2.class
+com\retinal\auth\AuthResult.class
+com\retinal\auth\DatabaseManager.class
+com\retinal\auth\HttpJsonUtil.class
+com\retinal\auth\AuthHttpServer$3.class
+com\retinal\auth\PasswordUtil.class
+com\retinal\auth\AuthHttpServer$1.class
+com\retinal\auth\Main.class
+com\retinal\auth\AuthHttpServer.class
+com\retinal\auth\AuthService.class
