@@ -56,7 +56,7 @@ public class RetinaPainter : MonoBehaviour, IPointerDownHandler, IPointerUpHandl
         if (sourceTexture == null || blurMaterial == null) return;
 
         EnsureDisplayTexture();
-        int clamped = Mathf.Clamp(blurLevel, 0, 30);
+        int clamped = Mathf.Clamp(blurLevel, 0, 20);
         if (!forceUpdate && clamped == currentBlurLevel) return;
 
         currentBlurLevel = clamped;

@@ -93,6 +93,7 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
     private const string DefaultDurationTextName = "DurationText";
     private const string DefaultSpotSizeTextName = "SpotSizeText";
     private const string DefaultCalibrationButtonName = "Btn_Calib";
+    private static readonly int[] RadialWavelengthOptions = { 532, 577 };
 
     void Start()
     {
@@ -982,6 +983,48 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
         }
 
         isCalibrating = true;
+    }
+
+    // UIManager 四方向轮盘调用入口：
+    // 0=功率, 1=时长, 2=光斑, 3=波长; direction: +1 上滚, -1 下滚
+    public void AdjustRadialParameter(int parameterIndex, int direction)
+    {
+        if (direction == 0) return;
+
+        int sign = direction > 0 ? 1 : -1;
+        switch (parameterIndex)
+        {
+            case 0:
+                currentPower = Mathf.Clamp(currentPower + sign * 10f, 50f, 400f);
+                break;
+            case 1:
+                currentDuration = Mathf.Clamp(currentDuration + sign * 10f, 10f, 500f);
+                break;
+            case 2:
+                currentSpotSize = Mathf.Clamp(currentSpotSize + sign * 10f, 50f, 400f);
+                break;
+            case 3:
+                CycleWavelength(sign);
+                break;
+        }
+
+        RefreshParameterPanel();
+    }
+
+    private void CycleWavelength(int direction)
+    {
+        int idx = 0;
+        for (int i = 0; i < RadialWavelengthOptions.Length; i++)
+        {
+            if (Mathf.RoundToInt(currentWavelength) == RadialWavelengthOptions[i])
+            {
+                idx = i;
+                break;
+            }
+        }
+
+        idx = (idx + (direction > 0 ? 1 : -1) + RadialWavelengthOptions.Length) % RadialWavelengthOptions.Length;
+        currentWavelength = RadialWavelengthOptions[idx];
     }
 
     private bool RenderLaserSpot(Vector2 localPos, float zValue, float power, float duration, float spotSize)

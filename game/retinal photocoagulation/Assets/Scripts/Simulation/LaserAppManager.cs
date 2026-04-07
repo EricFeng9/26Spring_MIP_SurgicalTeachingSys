@@ -109,8 +109,8 @@ public class LaserAppManager : MonoBehaviour
 
         float optimalZ = GetOptimalZ();
         float focusDiff = Mathf.Abs(zOffset - optimalZ);
-        int newBlur = Mathf.FloorToInt(focusDiff / 5.0f);
-        newBlur = Mathf.Min(newBlur, 30);
+        int newBlur = Mathf.FloorToInt(focusDiff / 7.5f);
+        newBlur = Mathf.Min(newBlur, 20);
         lastOptimalZ = optimalZ;
         lastFocusDiff = focusDiff;
 
@@ -125,7 +125,7 @@ public class LaserAppManager : MonoBehaviour
         }
     }
 
-    // 复刻 Python 的 get_optimal_z: 基于当前视口中心在原图坐标的半径 r * 0.45。
+    // 让目标焦段和图像尺寸解耦，避免超大图在边缘时目标焦段超过可调范围。
     public float GetOptimalZ() {
         if (painter == null || originFundusImage == null) return 0f;
         Vector2 uv = painter.GetViewportCenterUV();
@@ -133,11 +133,13 @@ public class LaserAppManager : MonoBehaviour
         float imgY = uv.y * originFundusImage.height;
         Vector2 center = new Vector2(originFundusImage.width * 0.5f, originFundusImage.height * 0.5f);
         float r = Vector2.Distance(new Vector2(imgX, imgY), center);
-        return r * 0.45f;
+        float maxRadius = Vector2.Distance(Vector2.zero, center);
+        float normalized = maxRadius > 0.0001f ? Mathf.Clamp01(r / maxRadius) : 0f;
+        return normalized * 1200f;
     }
 
     public void AdjustFocus(float delta) {
-        zOffset = Mathf.Clamp(zOffset + delta, -1500f, 1500f);
+        zOffset = Mathf.Clamp(zOffset + delta, -2500f, 2500f);
         if(sliderFocus != null) sliderFocus.value = zOffset; // 同步滑动条
         CheckFocusState(true);
         UpdateUI();
@@ -151,12 +153,12 @@ public class LaserAppManager : MonoBehaviour
         lblSpot = GameObject.Find("Slider_Spot_Label").GetComponent<Text>();
         sliderDuration = GameObject.Find("Slider_Duration").GetComponent<Slider>();
         lblDuration = GameObject.Find("Slider_Duration_Label").GetComponent<Text>();
-        
+
         // 绑定调焦 Slider
         sliderFocus = GameObject.Find("Slider_Focus")?.GetComponent<Slider>();
         if(sliderFocus != null) {
-            sliderFocus.minValue = -1500f;
-            sliderFocus.maxValue = 1500f;
+            sliderFocus.minValue = -2500f;
+            sliderFocus.maxValue = 2500f;
             sliderFocus.onValueChanged.AddListener(v => { zOffset = v; CheckFocusState(true); UpdateUI(); });
         }
 

@@ -4,6 +4,9 @@ using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
+    private const string DefaultSettingsPanelName = "Settings_Overlay";
+    private const string DefaultRadialPanelName = "RadialMenu_Overlay";
+
     [Header("UI Panels")]
     public GameObject settingsPanel;
     public GameObject radialMenuPanel;
@@ -24,9 +27,21 @@ public class UIManager : MonoBehaviour
     [Tooltip("选中高亮颜色")]
     public Color highlightedItemColor = new Color(1f, 0.88f, 0.35f, 1f);
 
+    [Header("参数滚轮模式")]
+    [Tooltip("启用后，Element 0~3 分别对应 功率/时长/光斑/波长，滚轮上调加、下调减")]
+    public bool useFourItemBidirectionalScroll = true;
+    [Tooltip("参数控制目标（通常拖入挂有 SurgerySimulator 的对象）")]
+    public SurgerySimulator surgerySimulator;
+
     [Header("Time Scale Settings")]
     [Tooltip("轮盘呼出时的时间流速，1为正常，0.1为极慢的子弹时间")]
     public float bulletTimeScale = 0.1f;
+
+    [Header("滚轮调参")]
+    [Tooltip("启用后，悬停选中某个方块时，滚轮会触发该方块绑定的按钮事件")]
+    public bool enableScrollAdjust = true;
+    [Tooltip("每次滚轮事件最多触发的步数，避免滚动过快导致参数跳变过大")]
+    public int maxScrollStepsPerFrame = 3;
 
     // 记录设置面板的开关状态
     private bool isSettingsOpen = false;
@@ -35,6 +50,8 @@ public class UIManager : MonoBehaviour
 
     private void Awake()
     {
+        AutoBindReferences();
+
         if (radialMenuPanel != null)
         {
             var canvas = radialMenuPanel.GetComponentInParent<Canvas>();
@@ -47,6 +64,7 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
+        AutoBindReferences();
         LayoutRadialItems();
         ResetItemHighlight();
 
@@ -64,20 +82,22 @@ public class UIManager : MonoBehaviour
         if (radialMenuPanel != null && radialMenuPanel.activeSelf && !isSettingsOpen)
         {
             UpdateRadialSelectionByMouse();
+            HandleRadialScrollAdjust();
         }
     }
 
     private void LayoutRadialItems()
     {
-        if (radialItems == null || radialItems.Length == 0)
+        int itemCount = GetLayoutItemCount();
+        if (radialItems == null || radialItems.Length == 0 || itemCount <= 0)
         {
             return;
         }
 
-        var step = 360f / radialItems.Length;
+        var step = 360f / itemCount;
         var sign = clockwise ? -1f : 1f;
 
-        for (int i = 0; i < radialItems.Length; i++)
+        for (int i = 0; i < itemCount; i++)
         {
             var item = radialItems[i];
             if (item == null)
@@ -116,13 +136,20 @@ public class UIManager : MonoBehaviour
         }
 
         float angle = Mathf.Atan2(localPos.y, localPos.x) * Mathf.Rad2Deg;
+        int itemCount = GetLayoutItemCount();
+        if (itemCount <= 0)
+        {
+            SetSelectedIndex(-1);
+            return;
+        }
+
         float relative = Mathf.Repeat(startAngle - angle, 360f);
-        float sectorSize = 360f / 8f;
-        int index = Mathf.FloorToInt((relative + sectorSize * 0.5f) / sectorSize) % 8;
+        float sectorSize = 360f / itemCount;
+        int index = Mathf.FloorToInt((relative + sectorSize * 0.5f) / sectorSize) % itemCount;
 
         if (!clockwise)
         {
-            index = (8 - index) % 8;
+            index = (itemCount - index) % itemCount;
         }
 
         SetSelectedIndex(index);
@@ -191,13 +218,69 @@ public class UIManager : MonoBehaviour
         Debug.Log($"8向菜单选择: {currentSelectedIndex} -> {selectedItem.name}");
     }
 
+    private void HandleRadialScrollAdjust()
+    {
+        if (!enableScrollAdjust)
+        {
+            return;
+        }
+
+        int itemCount = GetActiveItemCount();
+        if (currentSelectedIndex < 0 || radialItems == null || currentSelectedIndex >= itemCount)
+        {
+            return;
+        }
+
+        float scroll = Input.mouseScrollDelta.y;
+        if (Mathf.Abs(scroll) < 0.01f)
+        {
+            return;
+        }
+
+        if (useFourItemBidirectionalScroll && surgerySimulator != null)
+        {
+            // Element 0..3 -> 功率/时长/光斑/波长
+            if (currentSelectedIndex >= 0 && currentSelectedIndex <= 3)
+            {
+                int direction = scroll > 0f ? 1 : -1;
+                int fourModeSteps = Mathf.Clamp(Mathf.Max(1, Mathf.RoundToInt(Mathf.Abs(scroll))), 1, Mathf.Max(1, maxScrollStepsPerFrame));
+                for (int i = 0; i < fourModeSteps; i++)
+                {
+                    surgerySimulator.AdjustRadialParameter(currentSelectedIndex, direction);
+                }
+            }
+            return;
+        }
+
+        var selectedItem = radialItems[currentSelectedIndex];
+        if (selectedItem == null)
+        {
+            return;
+        }
+
+        var button = selectedItem.GetComponent<Button>();
+        if (button == null)
+        {
+            return;
+        }
+
+        int steps = Mathf.Clamp(Mathf.Max(1, Mathf.RoundToInt(Mathf.Abs(scroll))), 1, Mathf.Max(1, maxScrollStepsPerFrame));
+        for (int i = 0; i < steps; i++)
+        {
+            button.onClick.Invoke();
+        }
+    }
+
     // 处理设置面板 (Esc键 切换开关)
     private void HandleSettingsInput()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             isSettingsOpen = !isSettingsOpen;
-            settingsPanel.SetActive(isSettingsOpen);
+            if (settingsPanel != null)
+            {
+                settingsPanel.SetActive(isSettingsOpen);
+            }
 
             // 如果打开了设置菜单，通常游戏应该完全暂停
             if (isSettingsOpen)
@@ -232,6 +315,8 @@ public class UIManager : MonoBehaviour
         // 如果设置面板开着，就屏蔽轮盘操作
         if (isSettingsOpen) return;
 
+        if (radialMenuPanel == null) return;
+
         // 按下 Tab 键瞬间：呼出轮盘，进入子弹时间
         if (Input.GetKeyDown(KeyCode.Tab))
         {
@@ -243,12 +328,122 @@ public class UIManager : MonoBehaviour
         // 松开 Tab 键瞬间：隐藏轮盘，时间恢复正常
         if (Input.GetKeyUp(KeyCode.Tab))
         {
-            ConfirmCurrentSelection();
             radialMenuPanel.SetActive(false);
             Time.timeScale = 1f;
             
             // TODO: 在这里可以触发“应用轮盘参数”的逻辑
             Debug.Log("轮盘参数已确认！");
+        }
+    }
+
+    private int GetActiveItemCount()
+    {
+        if (radialItems == null || radialItems.Length == 0)
+        {
+            return 0;
+        }
+
+        int expected = useFourItemBidirectionalScroll ? 4 : radialItems.Length;
+        return Mathf.Clamp(expected, 0, radialItems.Length);
+    }
+
+    // 布局始终按完整轮盘数量计算，避免四方向模式影响8向环状排布。
+    private int GetLayoutItemCount()
+    {
+        if (radialItems == null || radialItems.Length == 0)
+        {
+            return 0;
+        }
+
+        int nonNullCount = 0;
+        for (int i = 0; i < radialItems.Length; i++)
+        {
+            if (radialItems[i] != null)
+            {
+                nonNullCount++;
+            }
+        }
+
+        return nonNullCount > 0 ? nonNullCount : radialItems.Length;
+    }
+
+    private void AutoBindReferences()
+    {
+        if (settingsPanel == null)
+        {
+            var obj = GameObject.Find(DefaultSettingsPanelName);
+            if (obj != null) settingsPanel = obj;
+        }
+
+        if (radialMenuPanel == null)
+        {
+            var obj = GameObject.Find(DefaultRadialPanelName);
+            if (obj != null) radialMenuPanel = obj;
+        }
+
+        if (surgerySimulator == null)
+        {
+            surgerySimulator = FindObjectOfType<SurgerySimulator>();
+        }
+
+        AutoBindRadialItems();
+    }
+
+    private void AutoBindRadialItems()
+    {
+        if (radialMenuPanel == null || radialItems == null || radialItems.Length == 0)
+        {
+            return;
+        }
+
+        int targetCount = radialItems.Length;
+        if (targetCount <= 0) return;
+
+        bool needBind = false;
+        for (int i = 0; i < targetCount; i++)
+        {
+            if (radialItems[i] == null)
+            {
+                needBind = true;
+                break;
+            }
+        }
+
+        if (!needBind) return;
+
+        int writeIndex = 0;
+        foreach (Transform child in radialMenuPanel.transform)
+        {
+            if (writeIndex >= targetCount) break;
+            var rt = child as RectTransform;
+            if (rt == null) continue;
+            if (rt.GetComponent<Button>() == null) continue;
+            radialItems[writeIndex++] = rt;
+        }
+
+        if (writeIndex < targetCount)
+        {
+            Button[] buttons = radialMenuPanel.GetComponentsInChildren<Button>(true);
+            for (int i = 0; i < buttons.Length && writeIndex < targetCount; i++)
+            {
+                var rt = buttons[i].GetComponent<RectTransform>();
+                if (rt == null || rt == radialMenuPanel.GetComponent<RectTransform>()) continue;
+
+                bool exists = false;
+                for (int j = 0; j < writeIndex; j++)
+                {
+                    if (radialItems[j] == rt)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (!exists)
+                {
+                    radialItems[writeIndex++] = rt;
+                }
+            }
         }
     }
 
