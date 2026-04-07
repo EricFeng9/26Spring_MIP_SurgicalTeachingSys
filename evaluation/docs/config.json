@@ -1,0 +1,28 @@
+{
+  "scoring_policy": {
+    "param_tolerance_tau": {
+      "power": 0.20,
+      "_power": "功率容许偏差比例(20%)",
+      "spot_size": 0.15,
+      "_spot_size": "光斑大小容许偏差比例(15%)",
+      "exposure_time": 0.25,
+      "_exposure_time": "曝光时间容许偏差比例(25%)",
+      "wavelength": 0.10,
+      "_wavelength": "波长容许偏差比例(10%)"
+    },
+    "spacing_thresholds": {
+      "sigma_good_sq": 25.0,
+      "_sigma_good_sq": "优秀间距方差上限(像素^2)",
+      "sigma_max_sq": 100.0,
+      "_sigma_max_sq": "容忍间距方差上限(像素^2)",
+      "r_value_excellent": 1.2,
+      "_r_value_excellent": "R指数优秀比例(>1.2)",
+      "r_value_pass": 0.8,
+      "_r_value_pass": "R指数合格阈值(0.8)"
+    },
+    "penalty_rules": {
+      "points_per_overlap": 1.0,
+      "_points_per_overlap": "每个光斑重叠扣除的分数"
+    }
+  }
+}

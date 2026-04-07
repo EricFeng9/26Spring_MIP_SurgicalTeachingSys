@@ -1,0 +1,40 @@
+{
+  "session_id": "SESS_20260326_001",
+  "_session_id": "会话唯一ID",
+  "task_id": "T001_RP_Standard",
+  "_task_id": "对应题目ID",
+  "player_info": {
+    "id": "ST_007",
+    "name": "张三"
+  },
+  "shots": [
+    {
+      "id": 1,
+      "pos": [150.5, 160.2],
+      "_pos": "光斑中心点坐标[x,y]",
+      "is_trial": true,
+      "_is_trial": "是否为试打点",
+      "params": {
+        "power": 180.0,
+        "_power": "实际功率(mW)",
+        "spot_size": 200.0,
+        "_spot_size": "实际大小(um)",
+        "exposure_time": 100.0,
+        "_exposure_time": "实际曝光时间(ms)",
+        "wavelength": 532.0,
+        "_wavelength": "实际波长(nm)"
+      }
+    },
+    {
+      "id": 2,
+      "pos": [175.0, 185.0],
+      "is_trial": false,
+      "params": {
+        "power": 205.0,
+        "spot_size": 200.0,
+        "exposure_time": 100.0,
+        "wavelength": 532.0
+      }
+    }
+  ]
+}
