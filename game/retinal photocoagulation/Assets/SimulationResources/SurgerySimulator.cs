@@ -44,6 +44,12 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
     public bool autoFindParameterRefs = true;
     public bool parameterPanelVisibleByUser = true;
 
+    [Header("标定按钮控制")]
+    public Button realCalibrationButton;
+    public GameObject realCalibrationButtonRoot;
+    public bool autoFindCalibrationButton = true;
+    private readonly System.Collections.Generic.List<GameObject> calibrationButtonRoots = new System.Collections.Generic.List<GameObject>();
+
     [Header("光学参数与标定")]
     public float targetFovUm = 6000f;   // 目标物理视野 (6mm)
     public float pixelToUm = 2.0f;      // 标定出的像素/微米比
@@ -86,6 +92,7 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
     private const string DefaultPowerTextName = "PowerText";
     private const string DefaultDurationTextName = "DurationText";
     private const string DefaultSpotSizeTextName = "SpotSizeText";
+    private const string DefaultCalibrationButtonName = "Btn_Calib";
 
     void Start()
     {
@@ -112,6 +119,11 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
             TryAutoBindParameterReferences();
         }
 
+        if (autoFindCalibrationButton)
+        {
+            TryAutoBindCalibrationButton();
+        }
+
         // 3. 强制建立安全画布 (RGBA32)，防止格式不支持报错
         if (fundusImage.texture != null)
         {
@@ -135,6 +147,7 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
         if (aimingRing) aimingRing.gameObject.SetActive(false);
         if (roiIndicator != null) roiIndicatorImage = roiIndicator.GetComponent<Image>();
         RefreshStatsPanel();
+        RefreshCalibrationButtonVisibility();
     }
 
     void Update()
@@ -154,6 +167,11 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
             TryAutoBindParameterReferences();
         }
 
+        if (autoFindCalibrationButton && realCalibrationButton == null)
+        {
+            TryAutoBindCalibrationButton();
+        }
+
         if (minimapImage != null && fundusImage != null && minimapImage.texture == null)
         {
             minimapImage.texture = fundusImage.texture;
@@ -165,6 +183,113 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
         UpdateMinimapROI();
         RefreshStatsPanel();
         RefreshParameterPanel();
+        RefreshCalibrationButtonVisibility();
+    }
+
+    private void TryAutoBindCalibrationButton()
+    {
+        if (realCalibrationButtonRoot == null && realCalibrationButton != null)
+        {
+            realCalibrationButtonRoot = realCalibrationButton.gameObject;
+        }
+
+        if (realCalibrationButtonRoot == null)
+        {
+            GameObject buttonObj = GameObject.Find(DefaultCalibrationButtonName);
+            if (buttonObj != null)
+            {
+                realCalibrationButtonRoot = buttonObj;
+            }
+        }
+
+        if (realCalibrationButton == null && realCalibrationButtonRoot != null)
+        {
+            realCalibrationButton = realCalibrationButtonRoot.GetComponent<Button>();
+            if (realCalibrationButton == null)
+            {
+                realCalibrationButton = realCalibrationButtonRoot.GetComponentInChildren<Button>(true);
+            }
+        }
+
+        if (realCalibrationButtonRoot != null)
+        {
+            RegisterCalibrationButtonRoot(realCalibrationButtonRoot);
+        }
+
+        Button[] allButtons = FindObjectsOfType<Button>(true);
+        for (int i = 0; i < allButtons.Length; i++)
+        {
+            Button btn = allButtons[i];
+            if (btn == null) continue;
+
+            int count = btn.onClick.GetPersistentEventCount();
+            for (int j = 0; j < count; j++)
+            {
+                Object target = btn.onClick.GetPersistentTarget(j);
+                string method = btn.onClick.GetPersistentMethodName(j);
+                if (target == this && method == nameof(StartCalibrationMode))
+                {
+                    RegisterCalibrationButtonRoot(btn.gameObject);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void RegisterCalibrationButtonRoot(GameObject root)
+    {
+        if (root == null) return;
+        if (!calibrationButtonRoots.Contains(root))
+        {
+            calibrationButtonRoots.Add(root);
+        }
+    }
+
+    private void RefreshCalibrationButtonVisibility()
+    {
+        if (realCalibrationButtonRoot == null && realCalibrationButton != null)
+        {
+            realCalibrationButtonRoot = realCalibrationButton.gameObject;
+        }
+
+        if (realCalibrationButtonRoot != null)
+        {
+            RegisterCalibrationButtonRoot(realCalibrationButtonRoot);
+        }
+
+        bool shouldShow = !hasCompletedCalibration;
+
+        for (int i = calibrationButtonRoots.Count - 1; i >= 0; i--)
+        {
+            GameObject root = calibrationButtonRoots[i];
+            if (root == null)
+            {
+                calibrationButtonRoots.RemoveAt(i);
+                continue;
+            }
+
+            if (root.activeSelf != shouldShow)
+            {
+                root.SetActive(shouldShow);
+            }
+
+            CanvasGroup group = root.GetComponent<CanvasGroup>();
+            if (group != null)
+            {
+                group.alpha = shouldShow ? 1f : 0f;
+                group.interactable = shouldShow;
+                group.blocksRaycasts = shouldShow;
+            }
+        }
+
+        if (realCalibrationButton != null)
+        {
+            realCalibrationButton.interactable = shouldShow;
+            if (realCalibrationButton.targetGraphic != null)
+            {
+                realCalibrationButton.targetGraphic.enabled = shouldShow;
+            }
+        }
     }
 
     private void TryAutoBindMinimapReferences()
@@ -409,14 +534,23 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
             SetElapsedTimeLabel($"Elapsed: {minutes:00}:{seconds:00}");
         }
 
-        if (shotStatsPanel != null && !shotStatsPanel.activeSelf)
+        bool slitLampOn = slitLampOverlay != null && slitLampOverlay.activeSelf;
+        bool shouldShow = slitLampOn && parameterPanelVisibleByUser;
+
+        if (shotStatsPanel != null)
         {
-            shotStatsPanel.SetActive(true);
+            if (shotStatsPanel.activeSelf != shouldShow)
+            {
+                shotStatsPanel.SetActive(shouldShow);
+            }
         }
 
-        if (timeStatsPanel != null && !timeStatsPanel.activeSelf)
+        if (timeStatsPanel != null)
         {
-            timeStatsPanel.SetActive(true);
+            if (timeStatsPanel.activeSelf != shouldShow)
+            {
+                timeStatsPanel.SetActive(shouldShow);
+            }
         }
     }
 
@@ -838,7 +972,17 @@ public class SurgerySimulator : MonoBehaviour, IPointerDownHandler, IDragHandler
         return RenderLaserSpot(localPos, res.zValue, currentPower, currentDuration, currentSpotSize);
     }
 
-    public void StartCalibrationMode() { isCalibrating = true; }
+    public void StartCalibrationMode()
+    {
+        if (hasCompletedCalibration) return;
+
+        if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
+        {
+            RegisterCalibrationButtonRoot(EventSystem.current.currentSelectedGameObject);
+        }
+
+        isCalibrating = true;
+    }
 
     private bool RenderLaserSpot(Vector2 localPos, float zValue, float power, float duration, float spotSize)
     {
