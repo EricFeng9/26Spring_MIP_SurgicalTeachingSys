@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class TreatRecordManager : MonoBehaviour
 {
@@ -21,6 +22,9 @@ public class TreatRecordManager : MonoBehaviour
     public TMP_Dropdown dropdownDiagnosis; // 拖入 Dropdown_Diagnosis
     public Button btnSurgeryYes;           // 拖入 Btn_SurgeryYes
     public Button btnSurgeryNo;            // 拖入 Btn_SurgeryNo
+
+    [Header("场景跳转")]
+    public string surgerySceneName = "ComputerScreen";
 
     private CaseData currentSelectedCase;
 
@@ -78,7 +82,13 @@ public class TreatRecordManager : MonoBehaviour
     public void OnConfirmSurgeryClick()
     {
         Debug.Log("进入手术逻辑");
-        // 跳转逻辑
+        if (string.IsNullOrWhiteSpace(surgerySceneName))
+        {
+            Debug.LogError("未配置手术场景名，请在 Inspector 中设置 surgerySceneName。");
+            return;
+        }
+
+        SceneManager.LoadScene(surgerySceneName);
     }
 
     public void OnNoSurgeryClick()
