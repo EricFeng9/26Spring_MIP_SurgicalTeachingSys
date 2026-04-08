@@ -5,6 +5,7 @@ using TMPro; // 引入 TextMeshPro
 
 public class SurgeryScoreTransition : MonoBehaviour
 {
+    
     [Header("图层引用 (拖拽UI节点到这里)")]
     public RectTransform eyepieceMask;      // 目镜遮罩
     public CanvasGroup eyepieceGroup;       // 目镜遮罩的CanvasGroup
@@ -17,31 +18,24 @@ public class SurgeryScoreTransition : MonoBehaviour
     public TextMeshProUGUI reportText;      // 报告文本
     public TextMeshProUGUI finalScoreText;  // 右下角大分数
 
+    [Header("脚本联动")]
+    public SceneNavigator sceneNavigator;
+
     [Header("动画参数")]
     public float transitionDuration = 1.5f; // 抽离镜头的动画时间
     public Vector3 targetEyepiecePos = new Vector3(-300f, 100f, 0f); // 假设这是机器目镜在屏幕上的坐标
 
     private void Start()
     {
+        // 这个脚本现在只负责初始化结算相关的状态
         scoreBoardGroup.alpha = 0f;
         scoreBoardGroup.blocksRaycasts = false;
-
-        // 1. 强制隐藏结算面板和变暗遮罩
-        scoreBoardGroup.alpha = 0f;
         dimOverlay.color = new Color(0, 0, 0, 0);
         reportText.text = "";
         finalScoreText.text = "";
-
-        // 2. 强制锁定“手术进行中”的视野状态 (关键！)
-        // 把黑圈遮罩放大 5 倍，并放在屏幕正中心，这样黑色部分就能挡住背后的机器
-        eyepieceMask.localScale = new Vector3(20f, 20f, 1f); 
-        eyepieceMask.localPosition = Vector3.zero; 
-        eyepieceGroup.alpha = 1f; // 完全不透明
-
-        // 手术画面设为正常大小，也在屏幕正中心 (从黑圈中间透出来)
-        surgeryContainer.localScale = Vector3.one; 
-        surgeryContainer.localPosition = Vector3.zero; 
-        surgeryGroup.alpha = 1f; 
+        
+        // 删除了原本在这里强行放大 EyepieceMask 和 SurgeryContainer 的代码
+        // 因为这些初始状态交给了新的导航脚本来管理
     }
 
     // 在你的游戏逻辑判定手术结束时，调用这个方法！
@@ -152,5 +146,33 @@ public class SurgeryScoreTransition : MonoBehaviour
         
         // 可选：在这里播放“咚”的音效
         // GetComponent<AudioSource>().PlayOneShot(stampSound);
+    }
+    // 新增：关闭结算页面并返回全景
+    public void CloseScoreBoard()
+    {
+        Sequence closeSeq = DOTween.Sequence();
+
+        // 1. 瞬间关闭点击交互，防止玩家狂点退出按钮
+        scoreBoardGroup.blocksRaycasts = false;
+
+        // 2. 夹板淡出并向下沉降
+        closeSeq.Append(scoreBoardGroup.DOFade(0f, 0.4f));
+        closeSeq.Join(scoreBoardGroup.transform.DOLocalMoveY(-50f, 0.4f).SetEase(Ease.InCubic));
+
+        // 3. 背景暗化层褪去 (变回完全透明)
+        closeSeq.Join(dimOverlay.DOFade(0f, 0.4f));
+
+        // 4. 动画结束后，通知 SceneNavigator 开始黑屏转场回到全景！
+        closeSeq.OnComplete(() =>
+        {
+            if (sceneNavigator != null)
+            {
+                sceneNavigator.GoToMainView();
+            }
+            else
+            {
+                Debug.LogError("没有绑定 SceneNavigator，无法返回全景！");
+            }
+        });
     }
 }
