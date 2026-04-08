@@ -1,0 +1,34 @@
+{
+  "case_id": "L2_001",
+  "level": 2,
+  "disease_type": "peripheral_retinal_tear",
+  "disease_type_cn": "周边视网膜裂孔",
+  "teaching_goal": [
+    "意识到该病例需光凝治疗",
+    "完成试打并调整功率",
+    "安全区内完成包绕式光凝"
+  ],
+  "preop_medical_record": "患者男，46岁。主诉：右眼眼前黑影飘动伴闪光感3天。既往史：高度近视（-6.00D）。专科检查：右眼视力0.8，周边视网膜可见一处马蹄形裂孔，无明显视网膜脱离。",
+  "preop_image_path": "http://127.0.0.1:18080/术前/1116947.jpg",
+  "postop_2w_image_path": "http://127.0.0.1:18080/术后/1116947.jpg",
+  "preop_image_meta": {
+    "width": 1536,
+    "height": 1536,
+    "fov": "wide"
+  },
+  "standard_parameters": {
+    "power_mw": [150, 250],
+    "exposure_time_ms": [100, 200],
+    "spot_diameter_um": [200, 300],
+    "spacing_ratio": [1.0, 1.5]
+  },
+  "lesion_annotations": [
+    {
+      "lesion_id": "lesion_01",
+      "lesion_type": "retinal_tear",
+      "mask_path": "cases/L2_001/masks/lesion_01_mask.png",
+      "bbox": [1020, 320, 180, 140],
+      "risk_level": "medium"
+    }
+  ]
+}
