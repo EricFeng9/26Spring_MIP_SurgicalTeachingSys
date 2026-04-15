@@ -34,6 +34,21 @@ namespace RetinalPrototype
             return false;
         }
 
+        public static bool TryGetAnySavedSlot(out int slotIndex)
+        {
+            for (var i = MinSlot; i <= MaxSlot; i++)
+            {
+                if (HasSave(i))
+                {
+                    slotIndex = i;
+                    return true;
+                }
+            }
+
+            slotIndex = -1;
+            return false;
+        }
+
         public static bool HasSave(int slotIndex)
         {
             if (!IsValidSlot(slotIndex))
