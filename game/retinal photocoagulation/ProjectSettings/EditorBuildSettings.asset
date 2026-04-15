@@ -71,4 +71,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Prototype/ComputerScreen.unity
     guid: 9bf5935d35a61264e9f668ab597b8b50
+  - enabled: 1
+    path: Assets/Scenes/ClinicHub.unity
+    guid: cfed480f92f6e6b4d811a2c1449b4b1e
   m_configObjects: {}
