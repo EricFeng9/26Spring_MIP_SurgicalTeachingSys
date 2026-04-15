@@ -1,0 +1,95 @@
+{
+  "session_id": "SESS_20260414_212029_001",
+  "_session_id": "关联的玩家操作会话ID",
+  "task_id": "T001_RP_Standard",
+  "_task_id": "关联的题目ID",
+  "is_fatal_error": false,
+  "_is_fatal_error": "是否触发医疗事故红线（一票否决）",
+  "fatal_error_reason": null,
+  "_fatal_error_reason": "红线失败原因，例如：打到黄斑中心凹",
+  "debug_visualization_paths": {
+    "player_only": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/Temp770298_sample_output_player_overlay.png",
+    "gt_only": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/Temp770298_sample_output_gt_overlay.png",
+    "combined": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/Temp770298_sample_output_combined_overlay.png"
+  },
+  "_debug_visualization_paths": "可视化图路径：player_only / gt_only / combined",
+  "debug_visualization_path": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/Temp770298_sample_output_combined_overlay.png",
+  "_debug_visualization_path": "combined 可视化图路径（兼容字段）",
+  "total_score": 59.9,
+  "_total_score": "最终总分（百分制，扣除所有惩罚项后）",
+  "dimensions": {
+    "dim1_position": {
+      "score": 0.0,
+      "max_score": 35.0,
+      "iou": 0.339,
+      "_iou": "玩家实际治疗面积与标准靶区的交并比",
+      "eval_msg": "覆盖不足，存在明显漏打或偏离靶区。"
+    },
+    "dim2_energy": {
+      "score": 33.9,
+      "max_score": 35.0,
+      "sub_scores": {
+        "power": {
+          "score": 9.9,
+          "max_score": 11.0,
+          "player_avg": 204.0,
+          "gt": 200.0,
+          "deviation_ratio": 0.02
+        },
+        "spot_size": {
+          "score": 8.0,
+          "max_score": 8.0,
+          "player_avg": 200.0,
+          "gt": 200.0,
+          "deviation_ratio": 0.0
+        },
+        "exposure_time": {
+          "score": 8.0,
+          "max_score": 8.0,
+          "player_avg": 100.0,
+          "gt": 100.0,
+          "deviation_ratio": 0.0
+        },
+        "wavelength": {
+          "score": 8.0,
+          "max_score": 8.0,
+          "player_avg": 532.0,
+          "gt": 532.0,
+          "deviation_ratio": 0.0
+        }
+      },
+      "eval_msg": "已完成参数偏差计算，可根据子项进行针对性训练。"
+    },
+    "dim3_density": {
+      "score": 30.0,
+      "max_score": 30.0,
+      "sub_scores": {
+        "r_value": {
+          "score": 15.0,
+          "max_score": 15.0,
+          "value": 1.7639,
+          "_value": "最近邻离散指数R，>1.2为优"
+        },
+        "spacing_variance": {
+          "score": 15.0,
+          "max_score": 15.0,
+          "value": 3.1159,
+          "_value": "光斑间距方差，越小手越稳"
+        }
+      },
+      "eval_msg": "已完成密度和间距稳定性评估。"
+    }
+  },
+  "penalties": {
+    "overlap_penalty": {
+      "count": 4,
+      "deducted_points": 4.0,
+      "_desc": "光斑物理重叠次数及扣分"
+    },
+    "vessel_hit_penalty": {
+      "count": 0,
+      "deducted_points": 0.0,
+      "_desc": "触碰视网膜大血管次数及扣分（每处扣5分，从维1中扣除，此处仅作记录和最终汇总扣除）"
+    }
+  }
+}
