@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: c0397ccc4d7a49549989c5d928714ec9
+guid: d4e261dd08bc99245aa8c15940ac824b
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -48,7 +48,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 40
+  spritePixelsToUnits: 64
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -110,13 +110,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: slow_walk_01_0
+      name: interact_monitor_0
       rect:
         serializedVersion: 2
-        x: 241
-        y: 108
-        width: 247
-        height: 776
+        x: 276
+        y: 90
+        width: 768
+        height: 536
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -124,20 +124,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 3850f83f6e552f847b334b8f1f34b748
-      internalID: 949872963
+      spriteID: 4db5918e41c86af4ca20be1bb9f38902
+      internalID: 1969146775
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: slow_walk_01_1
+      name: interact_monitor_1
       rect:
         serializedVersion: 2
-        x: 713
-        y: 108
-        width: 241
-        height: 776
+        x: 1131
+        y: 90
+        width: 772
+        height: 536
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -145,20 +145,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6b708894d15e18c4f80489a1a99d1393
-      internalID: -652403278
+      spriteID: cbb6ea44c5036994791bc7bd0c662cbb
+      internalID: 346887451
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: slow_walk_01_2
+      name: interact_monitor_2
       rect:
         serializedVersion: 2
-        x: 1192
-        y: 108
-        width: 256
-        height: 776
+        x: 1995
+        y: 90
+        width: 767
+        height: 536
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -166,20 +166,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 9a195cba5c0dae0458ad3e00a34a914e
-      internalID: -1334582357
+      spriteID: 84e316b187997184b80469add26f3c4f
+      internalID: -414197262
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: slow_walk_01_3
+      name: interact_monitor_3
       rect:
         serializedVersion: 2
-        x: 1695
-        y: 108
-        width: 283
-        height: 776
+        x: 2835
+        y: 90
+        width: 761
+        height: 538
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -187,8 +187,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 170091416d7b29947bc3ea5b01a1b354
-      internalID: 1830493416
+      spriteID: af32d965111d6b64f8d7fb01f19c9ba1
+      internalID: -1826286409
       vertices: []
       indices: 
       edges: []
@@ -204,10 +204,10 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      slow_walk_01_0: 949872963
-      slow_walk_01_1: -652403278
-      slow_walk_01_2: -1334582357
-      slow_walk_01_3: 1830493416
+      interact_monitor_0: 1969146775
+      interact_monitor_1: 346887451
+      interact_monitor_2: -414197262
+      interact_monitor_3: -1826286409
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

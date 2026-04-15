@@ -21,15 +21,19 @@ namespace RetinalPrototype.Hub
 
         [Header("Animation Parameter Names")]
         [SerializeField] private string speedParam = "Speed";
+        [SerializeField] private string actionStateParam = "ActionState";
+        [SerializeField] private string isInteractingParam = "IsInteracting";
+
+        [Header("Legacy Bool Params (Optional)")]
         [SerializeField] private string isSittingParam = "IsSitting";
         [SerializeField] private string isOperatingParam = "IsOperating";
-        [SerializeField] private string isInteractingParam = "IsInteracting";
 
         private readonly List<IClinicHubInteractable> _nearby = new List<IClinicHubInteractable>();
         private IClinicHubInteractable _current;
         private Vector2 _moveInput;
         private bool _inputLocked;
         private bool _facingRight = true;
+        private ClinicHubAction _forcedAction = ClinicHubAction.Idle;
 
         private void Reset()
         {
@@ -107,20 +111,9 @@ namespace RetinalPrototype.Hub
             }
         }
 
-        public void SetPose(ClinicHubPose pose)
+        public void SetAction(ClinicHubAction action)
         {
-            if (animator == null)
-            {
-                return;
-            }
-
-            bool seated = pose == ClinicHubPose.Seated;
-            bool operating = pose == ClinicHubPose.Operating || pose == ClinicHubPose.Microwave || pose == ClinicHubPose.Cabinet;
-            bool interacting = pose != ClinicHubPose.None;
-
-            animator.SetBool(isSittingParam, seated);
-            animator.SetBool(isOperatingParam, operating);
-            animator.SetBool(isInteractingParam, interacting);
+            _forcedAction = action;
         }
 
         public void SnapTo(Vector3 worldPosition)
@@ -168,7 +161,25 @@ namespace RetinalPrototype.Hub
                 return;
             }
 
-            animator.SetFloat(speedParam, Mathf.Abs(velocityX));
+            float absSpeed = Mathf.Abs(velocityX);
+            ClinicHubAction resolvedAction = _forcedAction;
+            if (_forcedAction == ClinicHubAction.Idle && absSpeed > 0.01f)
+            {
+                resolvedAction = ClinicHubAction.Walk;
+            }
+
+            animator.SetFloat(speedParam, absSpeed);
+            animator.SetInteger(actionStateParam, (int)resolvedAction);
+            animator.SetBool(isInteractingParam, resolvedAction != ClinicHubAction.Idle && resolvedAction != ClinicHubAction.Walk);
+
+            // Backward compatibility if your current controller still uses bools.
+            animator.SetBool(isSittingParam, resolvedAction == ClinicHubAction.Sit);
+            animator.SetBool(
+                isOperatingParam,
+                resolvedAction == ClinicHubAction.Surgery ||
+                resolvedAction == ClinicHubAction.Microwave ||
+                resolvedAction == ClinicHubAction.Documenting
+            );
         }
 
         private void RefreshCurrentInteractable()

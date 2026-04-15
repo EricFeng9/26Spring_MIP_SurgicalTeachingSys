@@ -2881,8 +2881,8 @@ MonoBehaviour:
   creditsPanel: {fileID: 579501586}
   settingsPanel: {fileID: 901521199}
   continueButton: {fileID: 985748725}
-  newGameSceneName: MainSurgery
-  continueSceneName: MainSurgery
+  newGameSceneName: ClinicHub
+  continueSceneName: ClinicHub
   statusText: {fileID: 0}
   statusAutoClearSeconds: 3
   sceneTransition: {fileID: 0}

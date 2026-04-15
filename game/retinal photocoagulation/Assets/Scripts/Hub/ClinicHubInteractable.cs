@@ -5,31 +5,32 @@ using UnityEngine.SceneManagement;
 
 namespace RetinalPrototype.Hub
 {
-    public enum ClinicHubPose
+    public enum ClinicHubAction
     {
-        None = 0,
-        Seated = 1,
-        Operating = 2,
-        Microwave = 3,
-        Cabinet = 4
+        Idle = 0,
+        Walk = 1,
+        Microwave = 2,
+        Surgery = 3,
+        Documenting = 4,
+        Sit = 5
     }
 
     public sealed class ClinicHubInteractable : MonoBehaviour, IClinicHubInteractable
     {
         [Header("UI")]
-        [SerializeField] private string promptText = "[E] 交互";
+        [SerializeField] private string promptText = "[E] Interact";
 
         [Header("Interaction")]
-        [SerializeField] private ClinicHubPose enterPose = ClinicHubPose.None;
+        [SerializeField] private ClinicHubAction enterAction = ClinicHubAction.Idle;
         [SerializeField] private bool lockMovementDuringInteraction = true;
         [SerializeField] private float preActionDelay = 0.2f;
         [SerializeField] private float postActionDelay = 0.3f;
-        [SerializeField] private bool clearPoseAfterAction = true;
+        [SerializeField] private bool clearActionAfterInteraction = true;
 
         [Header("Optional Snap")]
         [SerializeField] private Transform snapPoint;
-        [SerializeField] private bool snapFacingRight;
         [SerializeField] private bool forceFacingOnSnap;
+        [SerializeField] private bool snapFacingRight = true;
 
         [Header("Scene Transition")]
         [SerializeField] private string targetSceneName;
@@ -80,7 +81,8 @@ namespace RetinalPrototype.Hub
                 player.SetInputLocked(true);
             }
 
-            player.SetPose(enterPose);
+            player.SetAction(enterAction);
+
             if (preActionDelay > 0f)
             {
                 yield return new WaitForSeconds(preActionDelay);
@@ -107,9 +109,9 @@ namespace RetinalPrototype.Hub
                 yield return new WaitForSeconds(postActionDelay);
             }
 
-            if (clearPoseAfterAction)
+            if (clearActionAfterInteraction)
             {
-                player.SetPose(ClinicHubPose.None);
+                player.SetAction(ClinicHubAction.Idle);
             }
 
             if (lockMovementDuringInteraction)
