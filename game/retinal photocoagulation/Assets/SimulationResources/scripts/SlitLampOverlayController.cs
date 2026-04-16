@@ -52,6 +52,19 @@ public float GetSlitCenterXNormalized()
     return slitCenterXNormalized;
 }
 
+public float GetSlitWidthNormalized()
+{
+    return slitWidthNormalized;
+}
+
+public Vector2 GetSlitBoundsNormalized()
+{
+    float half = slitWidthNormalized * 0.5f;
+    return new Vector2(
+        Mathf.Clamp01(slitCenterXNormalized - half),
+        Mathf.Clamp01(slitCenterXNormalized + half));
+}
+
 public bool IsSlitCentered(float epsilon = 0.001f)
 {
     return Mathf.Abs(slitCenterXNormalized - 0.5f) <= epsilon;
