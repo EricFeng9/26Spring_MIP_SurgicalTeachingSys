@@ -1,0 +1,640 @@
+{
+    "session_id": "SESS_20260416_160556",
+    "task_id": "T001_RP_Standard",
+    "player_info": {
+        "id": "ST_001",
+        "name": "Operator"
+    },
+    "shots": [
+        {
+            "id": 1,
+            "pos": [
+                806.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 2,
+            "pos": [
+                775.0,
+                366.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 3,
+            "pos": [
+                775.0,
+                442.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 4,
+            "pos": [
+                775.0,
+                516.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 5,
+            "pos": [
+                736.0,
+                658.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 6,
+            "pos": [
+                694.0,
+                710.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 7,
+            "pos": [
+                658.0,
+                729.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 8,
+            "pos": [
+                622.0,
+                730.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 9,
+            "pos": [
+                581.0,
+                736.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 10,
+            "pos": [
+                520.0,
+                734.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 11,
+            "pos": [
+                485.0,
+                691.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 12,
+            "pos": [
+                447.0,
+                644.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 13,
+            "pos": [
+                432.0,
+                590.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 14,
+            "pos": [
+                432.0,
+                524.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 15,
+            "pos": [
+                432.0,
+                450.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 16,
+            "pos": [
+                432.0,
+                381.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 17,
+            "pos": [
+                479.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 18,
+            "pos": [
+                518.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 19,
+            "pos": [
+                559.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 20,
+            "pos": [
+                603.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 21,
+            "pos": [
+                639.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 22,
+            "pos": [
+                681.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 23,
+            "pos": [
+                722.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 24,
+            "pos": [
+                758.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 25,
+            "pos": [
+                932.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 26,
+            "pos": [
+                988.0,
+                338.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 27,
+            "pos": [
+                1019.0,
+                424.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 28,
+            "pos": [
+                984.0,
+                485.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 29,
+            "pos": [
+                944.0,
+                533.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 30,
+            "pos": [
+                904.0,
+                582.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 31,
+            "pos": [
+                867.0,
+                628.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 32,
+            "pos": [
+                830.0,
+                673.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 33,
+            "pos": [
+                790.0,
+                722.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 34,
+            "pos": [
+                749.0,
+                741.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 35,
+            "pos": [
+                710.0,
+                741.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 36,
+            "pos": [
+                669.0,
+                741.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 37,
+            "pos": [
+                353.0,
+                741.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 38,
+            "pos": [
+                348.0,
+                741.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 39,
+            "pos": [
+                477.0,
+                546.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 40,
+            "pos": [
+                527.0,
+                485.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 41,
+            "pos": [
+                590.0,
+                485.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 42,
+            "pos": [
+                675.0,
+                485.0
+            ],
+            "is_trial": false,
+            "spot_grade": 1,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        }
+    ]
+}

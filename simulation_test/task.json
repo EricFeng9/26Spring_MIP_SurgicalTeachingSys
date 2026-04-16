@@ -1,0 +1,30 @@
+{
+  "task_id": "T001_RP_Standard",
+  "_task_id": "题目ID",
+  "target_zone": {
+    "outer_boundary": [[100, 100], [400, 100], [400, 440], [100, 440]],
+    "_outer_boundary": "靶区外围多边形坐标(像素)",
+    "inner_holes": [
+      [[200, 200], [300, 200], [300, 300], [200, 300]]
+    ],
+    "_inner_holes": "靶区内部挖空多边形列表(用于表示环形靶区等空缺)"
+  },
+  "danger_zones": [
+    {
+      "id": "macula_fovea",
+      "_id": "危险区标识(黄斑中心)",
+      "polygon": [[240, 240], [260, 240], [260, 260], [240, 260]],
+      "_polygon": "危险区多避多边形坐标"
+    }
+  ],
+  "gt_parameters": {
+    "power": 200.0,
+    "_power": "标准功率(mW)",
+    "spot_size": 200.0,
+    "_spot_size": "标准光斑大小(um)",
+    "exposure_time": 200.0,
+    "_exposure_time": "标准曝光时间(ms)",
+    "wavelength": 532.0,
+    "_wavelength": "标准波长(nm)"
+  }
+}
