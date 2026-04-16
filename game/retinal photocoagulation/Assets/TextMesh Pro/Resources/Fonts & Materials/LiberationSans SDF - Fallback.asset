@@ -112,9 +112,9 @@ Material:
     - _Parallax: 0.02
     - _PerspectiveFilter: 0.875
     - _Reflectivity: 10
-    - _ScaleRatioA: 0.90909094
+    - _ScaleRatioA: 0.9
     - _ScaleRatioB: 0.73125
-    - _ScaleRatioC: 0.7386364
+    - _ScaleRatioC: 0.73125
     - _ScaleX: 1
     - _ScaleY: 1
     - _ShaderFlags: 0
@@ -263,6 +263,26 @@ MonoBehaviour:
     m_Y: 0
     m_Width: 449
     m_Height: 511
+  - m_X: 0
+    m_Y: 148
+    m_Width: 511
+    m_Height: 363
+  - m_X: 0
+    m_Y: 106
+    m_Width: 111
+    m_Height: 405
+  - m_X: 111
+    m_Y: 25
+    m_Width: 42
+    m_Height: 45
+  - m_X: 181
+    m_Y: 78
+    m_Width: 330
+    m_Height: 433
+  - m_X: 181
+    m_Y: 70
+    m_Width: 43
+    m_Height: 441
   m_fontInfo:
     Name: Liberation Sans
     PointSize: 86

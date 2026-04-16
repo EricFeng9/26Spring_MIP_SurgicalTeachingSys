@@ -1,23 +1,25 @@
 package com.retinal.auth;
 
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+
 public final class AuthHttpServer {
     private final HttpServer server;
     private final AuthService authService;
+    private final CaseService caseService;
 
     public AuthHttpServer(int port, AuthService authService) throws IOException {
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         this.authService = authService;
+        this.caseService = new CaseService();
         registerRoutes();
     }
 
@@ -88,6 +90,74 @@ public final class AuthHttpServer {
                 writeJson(exchange, result.success() ? 200 : 400, HttpJsonUtil.buildAuthResultJson(result));
             }
         });
+
+        server.createContext("/api/cases", exchange -> {
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                writeMethodNotAllowed(exchange);
+                return;
+            }
+
+            String caseId = extractCaseId(exchange);
+            if (caseId == null || caseId.isBlank()) {
+                writeJson(exchange, 400, HttpJsonUtil.buildErrorJson("缺少 caseId。请使用 /api/cases/{caseId}"));
+                return;
+            }
+
+            String caseJson = caseService.getCaseDetailJson(caseId);
+            if (caseJson == null) {
+                writeJson(exchange, 404, HttpJsonUtil.buildErrorJson("关卡不存在: " + caseId));
+                return;
+            }
+
+            writeJson(exchange, 200, caseJson);
+        });
+
+        // 图片访问接口: /api/assets/images/{caseId}/{preop|postop_2w}
+        server.createContext("/api/assets/images", exchange -> {
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                writeMethodNotAllowed(exchange);
+                return;
+            }
+
+            String[] imageRequest = extractCaseImageRequest(exchange);
+            if (imageRequest == null) {
+                writeJson(exchange, 400, HttpJsonUtil.buildErrorJson("请使用 /api/assets/images/{caseId}/{preop|postop_2w}"));
+                return;
+            }
+
+            CaseService.ImageFile imageFile = caseService.getCaseImage(imageRequest[0], imageRequest[1]);
+            if (imageFile == null) {
+                writeJson(exchange, 404, HttpJsonUtil.buildErrorJson("图片不存在或配置错误: " + imageRequest[0] + "/" + imageRequest[1]));
+                return;
+            }
+
+            writeBinary(exchange, 200, imageFile.contentType(), imageFile.bytes());
+        });
+    }
+
+    private static String extractCaseId(HttpExchange exchange) {
+        String path = exchange.getRequestURI().getPath();
+        String prefix = "/api/cases/";
+        if (path != null && path.startsWith(prefix) && path.length() > prefix.length()) {
+            return path.substring(prefix.length());
+        }
+        return null;
+    }
+
+    private static String[] extractCaseImageRequest(HttpExchange exchange) {
+        String path = exchange.getRequestURI().getPath();
+        String prefix = "/api/assets/images/";
+        if (path == null || !path.startsWith(prefix) || path.length() <= prefix.length()) {
+            return null;
+        }
+
+        String remain = path.substring(prefix.length());
+        String[] parts = remain.split("/");
+        if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+            return null;
+        }
+
+        return new String[] { parts[0], parts[1] };
     }
 
     private static void writeMethodNotAllowed(HttpExchange exchange) throws IOException {
@@ -98,6 +168,18 @@ public final class AuthHttpServer {
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         Headers headers = exchange.getResponseHeaders();
         headers.set("Content-Type", "application/json; charset=utf-8");
+        headers.set("Access-Control-Allow-Origin", "*");
+        headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+
+        exchange.sendResponseHeaders(statusCode, bytes.length);
+        exchange.getResponseBody().write(bytes);
+        exchange.close();
+    }
+
+    private static void writeBinary(HttpExchange exchange, int statusCode, String contentType, byte[] bytes) throws IOException {
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Content-Type", contentType != null ? contentType : "application/octet-stream");
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
         headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
