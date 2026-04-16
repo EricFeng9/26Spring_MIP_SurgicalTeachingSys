@@ -65,6 +65,15 @@ public Vector2 GetSlitBoundsNormalized()
         Mathf.Clamp01(slitCenterXNormalized + half));
 }
 
+public Vector2 GetReticleBoundsNormalized(float innerMaskVisibleFraction = 0f)
+{
+    Vector2 slitBounds = GetSlitBoundsNormalized();
+    float extension = Mathf.Clamp01(innerMaskVisibleFraction) * (1f - (slitBounds.y - slitBounds.x)) * 0.5f;
+    return new Vector2(
+        Mathf.Clamp01(slitBounds.x - extension),
+        Mathf.Clamp01(slitBounds.y + extension));
+}
+
 public bool IsSlitCentered(float epsilon = 0.001f)
 {
     return Mathf.Abs(slitCenterXNormalized - 0.5f) <= epsilon;

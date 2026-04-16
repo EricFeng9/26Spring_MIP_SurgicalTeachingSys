@@ -108,7 +108,7 @@ public class LaserTreatmentController : MonoBehaviour
     [SerializeField] private RectTransform crosshairRect;
     [SerializeField] private Image crosshairImage;
     [SerializeField] private float aimMoveSpeedNormalized = 0.85f;
-    [SerializeField, Range(0.05f, 0.95f)] private float aimRadiusNormalized = 0.42f;
+    [SerializeField, Range(0f, 1f)] private float reticleFadeZoneFraction = 0.2f;
     [SerializeField] private TMP_Text statusText;
 
     [Header("Info Bar")]
@@ -569,6 +569,11 @@ public class LaserTreatmentController : MonoBehaviour
     {
         if (crosshairRect == null || circularViewportRect == null)
             return;
+
+        Vector2 viewportDiameter = GetViewportDiameter();
+        aimOffsetNormalized = ConvertAnchoredPositionToAimOffset(
+            ClampAimAnchoredPositionToLitRegion(GetAimAnchoredPosition()),
+            viewportDiameter);
 
         float aiming = Mathf.Clamp(aimingBeamLevel != null ? aimingBeamLevel.ReadValue() : 50f, 0f, 100f);
         if (crosshairImage != null)
@@ -1189,18 +1194,25 @@ public class LaserTreatmentController : MonoBehaviour
 
     private Vector2Int GetCurrentAimPointTopLeft()
     {
-        Vector2 anchoredPosition = GetAimAnchoredPosition();
-        if (fovController != null && fovController.TryGetOriginalPixelFromViewportLocal(anchoredPosition, out Vector2 originalPx))
+        Vector2 center = fovController != null ? fovController.CurrentCenterPx : Vector2.zero;
+        float diameterPx = fovController != null ? fovController.CurrentDiameterPx : 0f;
+        Vector2 viewportDiameter = GetViewportDiameter();
+
+        if (diameterPx <= 0.001f || viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
         {
             return new Vector2Int(
-                Mathf.RoundToInt(originalPx.x),
-                Mathf.RoundToInt(originalPx.y));
+                Mathf.RoundToInt(center.x),
+                Mathf.RoundToInt(center.y));
         }
 
-        Vector2 center = fovController != null ? fovController.CurrentCenterPx : Vector2.zero;
+        float viewportUiDiameter = Mathf.Min(viewportDiameter.x, viewportDiameter.y);
+        float uiScale = viewportUiDiameter / diameterPx;
+        Vector2 aimAnchoredPosition = GetAimAnchoredPosition();
+        Vector2 localOffsetPx = aimAnchoredPosition / uiScale;
+
         return new Vector2Int(
-            Mathf.RoundToInt(center.x),
-            Mathf.RoundToInt(center.y));
+            Mathf.RoundToInt(center.x + localOffsetPx.x),
+            Mathf.RoundToInt(center.y - localOffsetPx.y));
     }
 
     private void HandleAimInput()
@@ -1231,54 +1243,54 @@ public class LaserTreatmentController : MonoBehaviour
         Vector2 viewportDiameter = GetViewportDiameter();
         float moveDistance = aimMoveSpeedNormalized * Time.deltaTime * Mathf.Min(viewportDiameter.x, viewportDiameter.y);
         Vector2 candidate = GetAimAnchoredPosition() + dir.normalized * moveDistance;
-        aimOffsetNormalized = ClampAimAnchoredPositionToLitRegion(candidate);
+        aimOffsetNormalized = ConvertAnchoredPositionToAimOffset(
+            ClampAimAnchoredPositionToLitRegion(candidate),
+            viewportDiameter);
     }
 
     private Vector2 ClampAimAnchoredPositionToLitRegion(Vector2 anchoredPosition)
     {
         Vector2 viewportDiameter = GetViewportDiameter();
-        float viewportRadius = Mathf.Min(viewportDiameter.x, viewportDiameter.y) * 0.5f;
-        float localRadius = viewportRadius * Mathf.Max(0.05f, aimRadiusNormalized);
-        if (localRadius <= 0.001f)
+        if (viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
             return Vector2.zero;
 
-        float slitOffsetXPx = GetSlitOffsetUiX();
-        Vector2 localOffset = anchoredPosition - new Vector2(slitOffsetXPx, 0f);
+        float viewportRadius = Mathf.Min(viewportDiameter.x, viewportDiameter.y) * 0.5f;
+        if (viewportRadius <= 0.001f)
+            return Vector2.zero;
 
-        float slitMinLocalX = -viewportRadius;
-        float slitMaxLocalX = viewportRadius;
+        float minX = -viewportRadius;
+        float maxX = viewportRadius;
         if (slitLamp != null)
         {
-            Vector2 slitBounds = slitLamp.GetSlitBoundsNormalized();
-            slitMinLocalX = (slitBounds.x - 0.5f) * viewportDiameter.x;
-            slitMaxLocalX = (slitBounds.y - 0.5f) * viewportDiameter.x;
+            Vector2 slitBounds = slitLamp.GetReticleBoundsNormalized(reticleFadeZoneFraction);
+            minX = Mathf.Max(minX, (slitBounds.x - 0.5f) * viewportDiameter.x);
+            maxX = Mathf.Min(maxX, (slitBounds.y - 0.5f) * viewportDiameter.x);
         }
 
-        float minLocalX = Mathf.Max(-localRadius, slitMinLocalX - slitOffsetXPx);
-        float maxLocalX = Mathf.Min(localRadius, slitMaxLocalX - slitOffsetXPx);
-        if (minLocalX > maxLocalX)
+        if (minX > maxX)
         {
-            float collapsedX = Mathf.Clamp(0f, Mathf.Min(minLocalX, maxLocalX), Mathf.Max(minLocalX, maxLocalX));
-            return new Vector2(collapsedX / localRadius, 0f);
+            float mid = (minX + maxX) * 0.5f;
+            minX = mid;
+            maxX = mid;
         }
 
-        localOffset.x = Mathf.Clamp(localOffset.x, minLocalX, maxLocalX);
+        Vector2 clamped = anchoredPosition;
+        clamped.x = Mathf.Clamp(clamped.x, minX, maxX);
 
-        float yLimit = Mathf.Sqrt(Mathf.Max(0f, localRadius * localRadius - localOffset.x * localOffset.x));
-        localOffset.y = Mathf.Clamp(localOffset.y, -yLimit, yLimit);
+        float radialYLimit = Mathf.Sqrt(Mathf.Max(0f, viewportRadius * viewportRadius - clamped.x * clamped.x));
+        clamped.y = Mathf.Clamp(clamped.y, -radialYLimit, radialYLimit);
 
-        return localOffset / localRadius;
+        return clamped;
     }
 
-    private Vector2 ConvertAnchoredPositionToAimOffset(Vector2 anchoredPosition, float viewportRadius)
+    private Vector2 ConvertAnchoredPositionToAimOffset(Vector2 anchoredPosition, Vector2 viewportDiameter)
     {
-        float localRadius = viewportRadius * Mathf.Max(0.05f, aimRadiusNormalized);
-        if (localRadius <= 0.001f)
+        if (viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
             return Vector2.zero;
 
-        float slitOffsetXPx = GetSlitOffsetUiX();
-        Vector2 localOffset = anchoredPosition - new Vector2(slitOffsetXPx, 0f);
-        return localOffset / localRadius;
+        return new Vector2(
+            Mathf.Clamp(anchoredPosition.x / viewportDiameter.x, -0.5f, 0.5f),
+            Mathf.Clamp(anchoredPosition.y / viewportDiameter.y, -0.5f, 0.5f));
     }
 
     private Vector2 GetViewportDiameter()
@@ -1306,11 +1318,9 @@ public class LaserTreatmentController : MonoBehaviour
         if (viewportDiameter.x <= 0f || viewportDiameter.y <= 0f)
             return Vector2.zero;
 
-        float viewportRadiusPx = Mathf.Min(viewportDiameter.x, viewportDiameter.y) * 0.5f;
-        float localRadiusPx = viewportRadiusPx * Mathf.Max(0.05f, aimRadiusNormalized);
-        Vector2 localOffset = aimOffsetNormalized * localRadiusPx;
-
-        return new Vector2(GetSlitOffsetUiX(), 0f) + localOffset;
+        return ClampAimAnchoredPositionToLitRegion(new Vector2(
+            aimOffsetNormalized.x * viewportDiameter.x,
+            aimOffsetNormalized.y * viewportDiameter.y));
     }
 
     private Texture2D CreateBlurredTexture(Texture2D source, int radius)
