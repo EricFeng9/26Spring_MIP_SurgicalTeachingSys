@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public final class DatabaseManager {
+    public static final String SCHEMA_NAME = "retinal_app";
     private final String jdbcUrl;
     private final String username;
     private final String password;
@@ -24,7 +25,10 @@ public final class DatabaseManager {
     public void initialize() throws SQLException {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS players ("
+                "CREATE SCHEMA IF NOT EXISTS " + SCHEMA_NAME + " AUTHORIZATION CURRENT_USER;");
+
+            stmt.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".players ("
                             + "id BIGSERIAL PRIMARY KEY,"
                             + "username VARCHAR(64) NOT NULL UNIQUE,"
                             + "password_hash VARCHAR(128) NOT NULL,"
@@ -34,17 +38,17 @@ public final class DatabaseManager {
                             + ");");
 
             stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS sessions ("
+                "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".sessions ("
                             + "token VARCHAR(128) PRIMARY KEY,"
                             + "username VARCHAR(64) NOT NULL,"
                             + "login_at VARCHAR(64) NOT NULL,"
                             + "logout_at VARCHAR(64) NULL,"
                             + "active SMALLINT NOT NULL,"
-                            + "FOREIGN KEY(username) REFERENCES players(username)"
+                    + "FOREIGN KEY(username) REFERENCES " + SCHEMA_NAME + ".players(username)"
                             + ");");
 
                         stmt.executeUpdate(
-                            "CREATE TABLE IF NOT EXISTS levels ("
+                            "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".levels ("
                                 + "id BIGSERIAL PRIMARY KEY,"
                                 + "level_code VARCHAR(64) NOT NULL UNIQUE,"
                                 + "name VARCHAR(128) NOT NULL,"
@@ -53,7 +57,7 @@ public final class DatabaseManager {
                                 + ");");
 
                         stmt.executeUpdate(
-                            "CREATE TABLE IF NOT EXISTS image_versions ("
+                                        "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".image_versions ("
                                 + "id BIGSERIAL PRIMARY KEY,"
                                 + "level_id BIGINT NOT NULL,"
                                 + "version_tag VARCHAR(64) NOT NULL,"
@@ -61,11 +65,11 @@ public final class DatabaseManager {
                                 + "answer_key_json JSONB NULL,"
                                 + "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),"
                                 + "UNIQUE(level_id, version_tag),"
-                                + "FOREIGN KEY(level_id) REFERENCES levels(id)"
+                                            + "FOREIGN KEY(level_id) REFERENCES " + SCHEMA_NAME + ".levels(id)"
                                 + ");");
 
                         stmt.executeUpdate(
-                            "CREATE TABLE IF NOT EXISTS play_sessions ("
+                                        "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".play_sessions ("
                                 + "id BIGSERIAL PRIMARY KEY,"
                                 + "session_uuid VARCHAR(64) NOT NULL UNIQUE,"
                                 + "username VARCHAR(64) NOT NULL,"
@@ -75,13 +79,13 @@ public final class DatabaseManager {
                                 + "started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),"
                                 + "submitted_at TIMESTAMPTZ NULL,"
                                 + "duration_ms BIGINT NULL,"
-                                + "FOREIGN KEY(username) REFERENCES players(username),"
-                                + "FOREIGN KEY(level_id) REFERENCES levels(id),"
-                                + "FOREIGN KEY(image_version_id) REFERENCES image_versions(id)"
+                                            + "FOREIGN KEY(username) REFERENCES " + SCHEMA_NAME + ".players(username),"
+                                            + "FOREIGN KEY(level_id) REFERENCES " + SCHEMA_NAME + ".levels(id),"
+                                            + "FOREIGN KEY(image_version_id) REFERENCES " + SCHEMA_NAME + ".image_versions(id)"
                                 + ");");
 
                         stmt.executeUpdate(
-                            "CREATE TABLE IF NOT EXISTS action_events ("
+                                        "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".action_events ("
                                 + "id BIGSERIAL PRIMARY KEY,"
                                 + "session_id BIGINT NOT NULL,"
                                 + "event_seq INTEGER NOT NULL,"
@@ -94,11 +98,11 @@ public final class DatabaseManager {
                                 + "viewport_offset_y DOUBLE PRECISION NULL,"
                                 + "meta_json JSONB NULL,"
                                 + "UNIQUE(session_id, event_seq),"
-                                + "FOREIGN KEY(session_id) REFERENCES play_sessions(id) ON DELETE CASCADE"
+                                            + "FOREIGN KEY(session_id) REFERENCES " + SCHEMA_NAME + ".play_sessions(id) ON DELETE CASCADE"
                                 + ");");
 
                         stmt.executeUpdate(
-                            "CREATE TABLE IF NOT EXISTS score_reports ("
+                                        "CREATE TABLE IF NOT EXISTS " + SCHEMA_NAME + ".score_reports ("
                                 + "id BIGSERIAL PRIMARY KEY,"
                                 + "session_id BIGINT NOT NULL UNIQUE,"
                                 + "score_version VARCHAR(32) NOT NULL DEFAULT 'v1',"
@@ -111,13 +115,13 @@ public final class DatabaseManager {
                                 + "avg_offset_px DOUBLE PRECISION NULL,"
                                 + "report_json JSONB NOT NULL,"
                                 + "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),"
-                                + "FOREIGN KEY(session_id) REFERENCES play_sessions(id) ON DELETE CASCADE"
+                                + "FOREIGN KEY(session_id) REFERENCES " + SCHEMA_NAME + ".play_sessions(id) ON DELETE CASCADE"
                                 + ");");
 
-                        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_play_sessions_username ON play_sessions(username);");
-                        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_play_sessions_level ON play_sessions(level_id);");
-                        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_events_session ON action_events(session_id);");
-                        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_events_ts ON action_events(event_ts);");
+                            stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_play_sessions_username ON " + SCHEMA_NAME + ".play_sessions(username);");
+                            stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_play_sessions_level ON " + SCHEMA_NAME + ".play_sessions(level_id);");
+                            stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_events_session ON " + SCHEMA_NAME + ".action_events(session_id);");
+                            stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_events_ts ON " + SCHEMA_NAME + ".action_events(event_ts);");
         }
     }
 
@@ -125,9 +129,8 @@ public final class DatabaseManager {
         String host = envOrDefault("DB_HOST", "127.0.0.1");
         int port = Integer.parseInt(envOrDefault("DB_PORT", "5432"));
         String database = envOrDefault("DB_NAME", "retinal_auth");
-        String user = envOrDefault("DB_USER", "postgres");
-        // password:Zenith3101
-        String pass = envOrDefault("DB_PASSWORD", "Zenith3101");
+        String user = envOrDefault("DB_USER", "testconnecter");
+        String pass = envOrDefault("DB_PASSWORD", "12345678");
         return new DatabaseManager(host, port, database, user, pass);
     }
 

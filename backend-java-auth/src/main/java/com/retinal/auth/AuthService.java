@@ -23,8 +23,8 @@ public final class AuthService {
             return AuthResult.fail("密码至少6位。");
         }
 
-        String checkSql = "SELECT 1 FROM players WHERE username = ?";
-        String insertSql = "INSERT INTO players(username, password_hash, salt, created_at) VALUES(?,?,?,?)";
+        String checkSql = "SELECT 1 FROM " + DatabaseManager.SCHEMA_NAME + ".players WHERE username = ?";
+        String insertSql = "INSERT INTO " + DatabaseManager.SCHEMA_NAME + ".players(username, password_hash, salt, created_at) VALUES(?,?,?,?)";
 
         try (Connection conn = db.getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(checkSql);
@@ -60,9 +60,9 @@ public final class AuthService {
             return AuthResult.fail("密码格式不正确。");
         }
 
-        String querySql = "SELECT password_hash, salt FROM players WHERE username = ?";
-        String updateSql = "UPDATE players SET last_login_at = ? WHERE username = ?";
-        String sessionSql = "INSERT INTO sessions(token, username, login_at, active) VALUES(?,?,?,1)";
+        String querySql = "SELECT password_hash, salt FROM " + DatabaseManager.SCHEMA_NAME + ".players WHERE username = ?";
+        String updateSql = "UPDATE " + DatabaseManager.SCHEMA_NAME + ".players SET last_login_at = ? WHERE username = ?";
+        String sessionSql = "INSERT INTO " + DatabaseManager.SCHEMA_NAME + ".sessions(token, username, login_at, active) VALUES(?,?,?,1)";
 
         try (Connection conn = db.getConnection();
              PreparedStatement queryStmt = conn.prepareStatement(querySql);
@@ -108,7 +108,7 @@ public final class AuthService {
             return AuthResult.fail("token 不能为空。");
         }
 
-        String sql = "UPDATE sessions SET active = 0, logout_at = ? WHERE token = ? AND active = 1";
+        String sql = "UPDATE " + DatabaseManager.SCHEMA_NAME + ".sessions SET active = 0, logout_at = ? WHERE token = ? AND active = 1";
         try (Connection conn = db.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, Instant.now().toString());
