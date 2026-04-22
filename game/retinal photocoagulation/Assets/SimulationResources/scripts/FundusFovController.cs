@@ -722,7 +722,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         Vector2 imageLocal = localPoint - fundusRawImage.rectTransform.anchoredPosition;
 
         float originalX = imageLocal.x / uiScale + texWidth * 0.5f;
-        float originalY = imageLocal.y / uiScale + texHeight * 0.5f;
+        float originalY = texHeight * 0.5f - imageLocal.y / uiScale;
 
         if (originalX < 0f || originalY < 0f || originalX > texWidth - 1 || originalY > texHeight - 1)
             return false;
@@ -824,6 +824,34 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         UpdateCalibrationPreview(startLocal, endLocal);
     }
 
+    public bool TryGetOriginalPixelFromViewportLocal(Vector2 localPoint, out Vector2 originalPx)
+    {
+        originalPx = default;
+
+        if (circularViewportRect == null || fundusRawImage == null || sourceTexture == null)
+            return false;
+
+        float viewportRadiusUi = Mathf.Min(circularViewportRect.rect.width, circularViewportRect.rect.height) * 0.5f;
+        if (localPoint.sqrMagnitude > viewportRadiusUi * viewportRadiusUi)
+            return false;
+
+        float viewportDiameterUi = viewportRadiusUi * 2f;
+        if (viewportDiameterUi <= 0.001f || currentDiameterPx <= 0.001f)
+            return false;
+
+        float uiScale = viewportDiameterUi / currentDiameterPx;
+        Vector2 imageLocal = localPoint - fundusRawImage.rectTransform.anchoredPosition;
+
+        float originalX = imageLocal.x / uiScale + texWidth * 0.5f;
+        float originalY = texHeight * 0.5f - imageLocal.y / uiScale;
+
+        if (originalX < 0f || originalY < 0f || originalX > texWidth - 1 || originalY > texHeight - 1)
+            return false;
+
+        originalPx = new Vector2(originalX, originalY);
+        return true;
+    }
+
     private bool TryConvertOriginalPixelToViewportLocal(Vector2 originalPx, out Vector2 localPoint)
     {
         localPoint = default;
@@ -838,7 +866,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         float uiScale = viewportDiameterUi / currentDiameterPx;
         localPoint = new Vector2(
             (originalPx.x - texWidth * 0.5f) * uiScale + fundusRawImage.rectTransform.anchoredPosition.x,
-            (originalPx.y - texHeight * 0.5f) * uiScale + fundusRawImage.rectTransform.anchoredPosition.y);
+            (texHeight * 0.5f - originalPx.y) * uiScale + fundusRawImage.rectTransform.anchoredPosition.y);
         return true;
     }
 

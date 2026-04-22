@@ -26,6 +26,13 @@ public class LaserTreatmentController : MonoBehaviour
         public float spot_size_set;
         public float exposure_time;
         public float wavelength;
+        public string mode;
+        public string matrix_shape;
+        public int matrix_shape_param;
+        public float matrix_spacing_x_spot;
+        public float matrix_rotation_deg;
+        public float matrix_offset_dx;
+        public float matrix_offset_dy;
     }
 
     [Serializable]
@@ -63,6 +70,19 @@ public class LaserTreatmentController : MonoBehaviour
         public string pngPath;
         public string json;
         public byte[] pngBytes;
+    }
+
+    private struct UndoShotSnapshot
+    {
+        public int x;
+        public int y;
+        public int width;
+        public int height;
+        public int shotCountDelta;
+        public Color[] previousPixels;
+        public BlurRegion blurRegion;
+
+        public bool IsValid => previousPixels != null && width > 0 && height > 0;
     }
 
     [System.Serializable]
@@ -107,13 +127,18 @@ public class LaserTreatmentController : MonoBehaviour
     [SerializeField] private RectTransform circularViewportRect;
     [SerializeField] private RectTransform crosshairRect;
     [SerializeField] private Image crosshairImage;
-    [SerializeField] private float aimMoveSpeedNormalized = 0.85f;
-    [SerializeField, Range(0.05f, 0.95f)] private float aimRadiusNormalized = 0.42f;
+    [SerializeField] private float aimMoveSpeedNormalized = 0.18f;
+    [SerializeField] private float fineAimSpeedMultiplier = 0.2f;
+    [SerializeField] private Image shotFlashOverlay;
+    [SerializeField] private float shotFlashPeakAlpha = 0.32f;
+    [SerializeField] private float shotFlashFadeSpeed = 5.5f;
+    [SerializeField, Range(0f, 1f)] private float reticleFadeZoneFraction = 0.1f;
     [SerializeField] private TMP_Text statusText;
 
     [Header("Info Bar")]
     [SerializeField] private TMP_Text spotsValueText;
     [SerializeField] private TMP_Text timerValueText;
+    [SerializeField] private TMP_Text gradeValueText;
 
     [Header("UI - Single Shot")]
     [SerializeField] private TMP_Dropdown modeDropdown;
@@ -164,23 +189,43 @@ public class LaserTreatmentController : MonoBehaviour
     private Texture2D workingBlurTexture;
     private Texture2D baseTextureSnapshot;
     private Color[] baseTexturePixels;
+    private Color[] baseBlurPixels;
 
     private readonly List<ExportShotRecord> shotHistory = new List<ExportShotRecord>();
+    private readonly List<UndoShotSnapshot> undoShotHistory = new List<UndoShotSnapshot>();
     private string currentSessionId;
     private float repeatTimer = 0f;
     private int shotCount = 0;
     private float surgeryElapsedSeconds = 0f;
+    private int lastComputedGrade = 0;
     private int lastInfoBarSecond = -1;
     private bool blurRebuildQueued = false;
     private Coroutine blurRebuildCoroutine;
     private bool isExporting = false;
     private BlurRegion pendingBlurRegion;
     private Vector2 aimOffsetNormalized = Vector2.zero;
+    private float shotFlashAlpha = 0f;
 
     private void Awake()
     {
         physicalModel = new LaserPhysicalModel();
         currentSessionId = BuildSessionId();
+
+        if (shotFlashOverlay == null && circularViewportRect != null)
+        {
+            Transform flashTransform = circularViewportRect.Find("Image_ShotFlashOverlay");
+            if (flashTransform != null)
+                shotFlashOverlay = flashTransform.GetComponent<Image>();
+        }
+
+        if (shotFlashOverlay != null)
+        {
+            Color flashColor = shotFlashOverlay.color;
+            flashColor.a = 0f;
+            shotFlashOverlay.color = flashColor;
+            shotFlashOverlay.gameObject.SetActive(false);
+            shotFlashOverlay.raycastTarget = false;
+        }
 
         if (startDiscCalibrationButton != null)
             startDiscCalibrationButton.onClick.AddListener(BeginDiscCalibration);
@@ -253,6 +298,7 @@ public class LaserTreatmentController : MonoBehaviour
         EnsureRuntimeTextures();
         HandleAimInput();
         RefreshCrosshair();
+        UpdateShotFlash();
         surgeryElapsedSeconds += Time.deltaTime;
 
         int currentSecond = Mathf.FloorToInt(surgeryElapsedSeconds);
@@ -322,38 +368,58 @@ public class LaserTreatmentController : MonoBehaviour
 
         Color[] sourcePixels = source.GetPixels();
         baseTexturePixels = (Color[])sourcePixels.Clone();
+        baseBlurPixels = CreateBlurredPixels(baseTexturePixels, source.width, source.height, blurRadiusForFocusLayer);
         baseTextureSnapshot = CloneTexture(source, sourcePixels);
         workingTexture = CloneTexture(source, sourcePixels);
         fundusRawImage.texture = workingTexture;
         shotHistory.Clear();
+        undoShotHistory.Clear();
         shotCount = 0;
+        lastComputedGrade = 0;
         surgeryElapsedSeconds = 0f;
         lastInfoBarSecond = -1;
         repeatTimer = 0f;
         aimOffsetNormalized = Vector2.zero;
         currentSessionId = BuildSessionId();
         RefreshInfoBar(force: true);
-        QueueBlurRebuild(forceImmediate: true, fullRebuild: true);
+        RestoreBaseBlurTexture();
     }
 
     private void Fire(LaserShotParameters parameters)
     {
+        if (physicalModel == null)
+            physicalModel = new LaserPhysicalModel();
+
         if (workingTexture == null || fovController == null || !fovController.IsReady)
             return;
 
         float pixelToUm = GetEffectivePixelToUm();
         Vector2Int aimPoint = GetCurrentAimPointTopLeft();
         List<Vector2Int> shotPoints = BuildShotPoints(aimPoint, parameters, pixelToUm);
+        LaserShotMetrics previewMetrics = physicalModel.Compute(parameters, pixelToUm);
+        List<Vector2Int> validShotPoints = new List<Vector2Int>(shotPoints.Count);
 
-        LaserShotMetrics lastMetrics = default;
-        bool firedAny = false;
-        BlurRegion mergedBlurRegion = default;
-
-        foreach (Vector2Int pt in shotPoints)
+        BlurRegion mergedUndoRegion = default;
+        for (int i = 0; i < shotPoints.Count; i++)
         {
+            Vector2Int pt = shotPoints[i];
             if (pt.x < 0 || pt.y < 0 || pt.x >= workingTexture.width || pt.y >= workingTexture.height)
                 continue;
 
+            validShotPoints.Add(pt);
+            MergeBlurRegion(ref mergedUndoRegion, BuildRenderRegionForShot(pt, previewMetrics));
+        }
+
+        if (validShotPoints.Count <= 0)
+            return;
+
+        UndoShotSnapshot actionUndoSnapshot = CaptureUndoSnapshot(mergedUndoRegion, validShotPoints.Count);
+
+        LaserShotMetrics lastMetrics = default;
+        BlurRegion mergedBlurRegion = default;
+
+        foreach (Vector2Int pt in validShotPoints)
+        {
             lastMetrics = LaserSpotRenderer.RenderShot(
                 workingTexture,
                 pt,
@@ -363,14 +429,18 @@ public class LaserTreatmentController : MonoBehaviour
             );
 
             MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
-            firedAny = true;
             shotCount++;
             shotHistory.Add(BuildShotRecord(shotCount, pt, parameters, lastMetrics));
         }
 
-        if (!firedAny)
-            return;
+        if (actionUndoSnapshot.IsValid)
+        {
+            actionUndoSnapshot.blurRegion = mergedBlurRegion;
+            undoShotHistory.Add(actionUndoSnapshot);
+        }
 
+        TriggerShotFlash();
+        lastComputedGrade = lastMetrics.grade;
         QueueBlurRebuild(mergedBlurRegion);
         RefreshInfoBar(force: true);
         RefreshStatus(parameters, lastMetrics);
@@ -467,84 +537,15 @@ public class LaserTreatmentController : MonoBehaviour
         }
 
         float spotDiameterPx = p.spotSizeUm / Mathf.Max(pixelToUm, 1e-6f);
+        if (physicalModel != null)
+        {
+            LaserShotMetrics previewMetrics = physicalModel.Compute(p, pixelToUm);
+            spotDiameterPx = Mathf.Max(2f, previewMetrics.effectiveRadiusPx * 2f);
+        }
+
         float spacingPx = Mathf.Max(1f, spotDiameterPx * p.spacingXSpot);
 
-        List<Vector2> localPts = new List<Vector2>();
-        int n = Mathf.Max(1, p.shapeParam);
-
-        switch (p.shape)
-        {
-            case MatrixShape.Square:
-            {
-                int side = Mathf.Clamp(n, 2, 5);
-                float half = (side - 1) / 2f;
-                for (int j = 0; j < side; j++)
-                {
-                    for (int i = 0; i < side; i++)
-                        localPts.Add(new Vector2((i - half) * spacingPx, (j - half) * spacingPx));
-                }
-                break;
-            }
-
-            case MatrixShape.Line:
-            {
-                int cnt = Mathf.Clamp(n, 2, 15);
-                float half = (cnt - 1) / 2f;
-                for (int i = 0; i < cnt; i++)
-                    localPts.Add(new Vector2((i - half) * spacingPx, 0f));
-                break;
-            }
-
-            case MatrixShape.Triangle:
-            {
-                int rows = Mathf.Clamp(n, 2, 15);
-                for (int row = 0; row < rows; row++)
-                {
-                    int cols = row + 1;
-                    float startX = -0.5f * (cols - 1) * spacingPx;
-                    float y = (row - (rows - 1) / 2f) * spacingPx;
-                    for (int col = 0; col < cols; col++)
-                        localPts.Add(new Vector2(startX + col * spacingPx, y));
-                }
-                break;
-            }
-
-            case MatrixShape.Circle:
-            {
-                int cnt = Mathf.Max(4, n);
-                float radius = spacingPx;
-                for (int i = 0; i < cnt; i++)
-                {
-                    float a = Mathf.PI * 2f * i / cnt;
-                    localPts.Add(new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a)));
-                }
-                break;
-            }
-
-            case MatrixShape.QuarterCircle:
-            {
-                int cnt = Mathf.Max(2, n);
-                float radius = spacingPx;
-                for (int i = 0; i < cnt; i++)
-                {
-                    float a = (Mathf.PI * 0.5f) * i / Mathf.Max(1, cnt - 1);
-                    localPts.Add(new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a)));
-                }
-                break;
-            }
-
-            case MatrixShape.HalfCircle:
-            {
-                int cnt = Mathf.Max(2, n);
-                float radius = spacingPx;
-                for (int i = 0; i < cnt; i++)
-                {
-                    float a = Mathf.PI * i / Mathf.Max(1, cnt - 1);
-                    localPts.Add(new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a)));
-                }
-                break;
-            }
-        }
+        List<Vector2> localPts = BuildLocalMatrixPoints(p.shape, p.shapeParam, spacingPx);
 
         float rot = p.rotationDeg * Mathf.Deg2Rad;
         float cos = Mathf.Cos(rot);
@@ -565,10 +566,223 @@ public class LaserTreatmentController : MonoBehaviour
         return result;
     }
 
+    private List<Vector2> BuildLocalMatrixPoints(MatrixShape shape, int shapeParamValue, float spacingPx)
+    {
+        switch (shape)
+        {
+            case MatrixShape.Line:
+                return BuildLinePoints(shapeParamValue, spacingPx);
+            case MatrixShape.Triangle:
+                return BuildTrianglePoints(shapeParamValue, spacingPx);
+            case MatrixShape.Circle:
+                return BuildCirclePoints(shapeParamValue, spacingPx);
+            case MatrixShape.QuarterCircle:
+                return BuildQuarterCirclePoints(shapeParamValue, spacingPx);
+            case MatrixShape.HalfCircle:
+                return BuildHalfCirclePoints(shapeParamValue, spacingPx);
+            default:
+                return BuildSquarePoints(shapeParamValue, spacingPx);
+        }
+    }
+
+    private List<Vector2> BuildSquarePoints(int shapeParamValue, float spacingPx)
+    {
+        List<Vector2> localPts = new List<Vector2>();
+        int side = GetEffectiveShapeParam(MatrixShape.Square, shapeParamValue);
+        float half = (side - 1) / 2f;
+
+        for (int j = 0; j < side; j++)
+        {
+            for (int i = 0; i < side; i++)
+                localPts.Add(new Vector2((i - half) * spacingPx, (j - half) * spacingPx));
+        }
+
+        return localPts;
+    }
+
+    private List<Vector2> BuildLinePoints(int shapeParamValue, float spacingPx)
+    {
+        List<Vector2> localPts = new List<Vector2>();
+        int count = GetEffectiveShapeParam(MatrixShape.Line, shapeParamValue);
+        float half = (count - 1) / 2f;
+
+        for (int i = 0; i < count; i++)
+            localPts.Add(new Vector2((i - half) * spacingPx, 0f));
+
+        return localPts;
+    }
+
+    private List<Vector2> BuildTrianglePoints(int shapeParamValue, float spacingPx)
+    {
+        List<Vector2> localPts = new List<Vector2>();
+        int rows = GetEffectiveShapeParam(MatrixShape.Triangle, shapeParamValue);
+
+        for (int row = 0; row < rows; row++)
+        {
+            int cols = row + 1;
+            float startX = -0.5f * (cols - 1) * spacingPx;
+            float y = (row - (rows - 1) / 2f) * spacingPx;
+            for (int col = 0; col < cols; col++)
+                localPts.Add(new Vector2(startX + col * spacingPx, y));
+        }
+
+        return localPts;
+    }
+
+    private List<Vector2> BuildCirclePoints(int shapeParamValue, float spacingPx)
+    {
+        List<Vector2> localPts = new List<Vector2>();
+        int count = GetEffectiveShapeParam(MatrixShape.Circle, shapeParamValue);
+        float radius = spacingPx;
+
+        for (int i = 0; i < count; i++)
+        {
+            float a = Mathf.PI * 2f * i / count;
+            localPts.Add(new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a)));
+        }
+
+        return localPts;
+    }
+
+    private List<Vector2> BuildQuarterCirclePoints(int shapeParamValue, float spacingPx)
+    {
+        List<Vector2> localPts = new List<Vector2>();
+        int count = GetEffectiveShapeParam(MatrixShape.QuarterCircle, shapeParamValue);
+        float radius = spacingPx;
+
+        for (int i = 0; i < count; i++)
+        {
+            float a = (Mathf.PI * 0.5f) * i / Mathf.Max(1, count - 1);
+            localPts.Add(new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a)));
+        }
+
+        return localPts;
+    }
+
+    private List<Vector2> BuildHalfCirclePoints(int shapeParamValue, float spacingPx)
+    {
+        List<Vector2> localPts = new List<Vector2>();
+        int count = GetEffectiveShapeParam(MatrixShape.HalfCircle, shapeParamValue);
+        float radius = spacingPx;
+
+        for (int i = 0; i < count; i++)
+        {
+            float a = Mathf.PI * i / Mathf.Max(1, count - 1);
+            localPts.Add(new Vector2(radius * Mathf.Cos(a), radius * Mathf.Sin(a)));
+        }
+
+        return localPts;
+    }
+
+    private int GetEffectiveShapeParam(LaserShotParameters parameters)
+    {
+        return GetEffectiveShapeParam(parameters.shape, parameters.shapeParam);
+    }
+
+    private int GetEffectiveShapeParam(MatrixShape shape, int rawValue)
+    {
+        switch (shape)
+        {
+            case MatrixShape.Square:
+                return Mathf.Clamp(rawValue, 2, 5);
+            case MatrixShape.Line:
+                return Mathf.Clamp(rawValue, 2, 15);
+            case MatrixShape.Triangle:
+                return Mathf.Clamp(rawValue, 2, 15);
+            case MatrixShape.Circle:
+                return Mathf.Clamp(rawValue, 4, 24);
+            case MatrixShape.QuarterCircle:
+            case MatrixShape.HalfCircle:
+                return Mathf.Clamp(rawValue, 2, 24);
+            default:
+                return Mathf.Max(1, rawValue);
+        }
+    }
+
+    private string GetShapeParamMeaning(MatrixShape shape)
+    {
+        switch (shape)
+        {
+            case MatrixShape.Square:
+                return "side length";
+            case MatrixShape.Line:
+                return "spot count";
+            case MatrixShape.Triangle:
+                return "row count";
+            case MatrixShape.Circle:
+                return "ring spot count";
+            case MatrixShape.QuarterCircle:
+                return "arc spot count";
+            case MatrixShape.HalfCircle:
+                return "arc spot count";
+            default:
+                return "value";
+        }
+    }
+
+    private string GetShapeParamRangeText(MatrixShape shape)
+    {
+        switch (shape)
+        {
+            case MatrixShape.Square:
+                return "2-5";
+            case MatrixShape.Line:
+            case MatrixShape.Triangle:
+                return "2-15";
+            case MatrixShape.Circle:
+                return "4-24";
+            case MatrixShape.QuarterCircle:
+            case MatrixShape.HalfCircle:
+                return "2-24";
+            default:
+                return "1+";
+        }
+    }
+
+    private int GetGeneratedShotCount(LaserShotParameters parameters)
+    {
+        if (parameters.mode == LaserMode.Single)
+            return 1;
+
+        int effectiveParam = GetEffectiveShapeParam(parameters);
+        switch (parameters.shape)
+        {
+            case MatrixShape.Square:
+                return effectiveParam * effectiveParam;
+            case MatrixShape.Triangle:
+                return effectiveParam * (effectiveParam + 1) / 2;
+            default:
+                return effectiveParam;
+        }
+    }
+
+    private bool TryParseLaserMode(string value, out LaserMode mode)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse(value, true, out mode))
+            return true;
+
+        mode = LaserMode.Single;
+        return false;
+    }
+
+    private bool TryParseMatrixShape(string value, out MatrixShape shape)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse(value, true, out shape))
+            return true;
+
+        shape = MatrixShape.Square;
+        return false;
+    }
+
     private void RefreshCrosshair()
     {
         if (crosshairRect == null || circularViewportRect == null)
             return;
+
+        Vector2 viewportDiameter = GetViewportDiameter();
+        aimOffsetNormalized = ConvertAnchoredPositionToAimOffset(
+            ClampAimAnchoredPositionToLitRegion(GetAimAnchoredPosition()),
+            viewportDiameter);
 
         float aiming = Mathf.Clamp(aimingBeamLevel != null ? aimingBeamLevel.ReadValue() : 50f, 0f, 100f);
         if (crosshairImage != null)
@@ -596,6 +810,48 @@ public class LaserTreatmentController : MonoBehaviour
             if (force || !string.Equals(timerValueText.text, timerText, StringComparison.Ordinal))
                 timerValueText.text = timerText;
         }
+
+        if (gradeValueText != null)
+        {
+            string gradeText = shotCount > 0 ? lastComputedGrade.ToString(CultureInfo.InvariantCulture) : "-";
+            if (force || !string.Equals(gradeValueText.text, gradeText, StringComparison.Ordinal))
+                gradeValueText.text = gradeText;
+        }
+    }
+
+    private void TriggerShotFlash()
+    {
+        if (shotFlashOverlay == null)
+            return;
+
+        shotFlashAlpha = Mathf.Clamp01(shotFlashPeakAlpha);
+        Color color = shotFlashOverlay.color;
+        color.a = shotFlashAlpha;
+        shotFlashOverlay.color = color;
+        if (!shotFlashOverlay.gameObject.activeSelf)
+            shotFlashOverlay.gameObject.SetActive(true);
+        shotFlashOverlay.transform.SetAsLastSibling();
+        if (crosshairRect != null)
+            crosshairRect.SetAsLastSibling();
+    }
+
+    private void UpdateShotFlash()
+    {
+        if (shotFlashOverlay == null)
+            return;
+
+        if (shotFlashAlpha <= 0.001f)
+        {
+            shotFlashAlpha = 0f;
+            if (shotFlashOverlay.gameObject.activeSelf)
+                shotFlashOverlay.gameObject.SetActive(false);
+            return;
+        }
+
+        shotFlashAlpha = Mathf.MoveTowards(shotFlashAlpha, 0f, Time.deltaTime * Mathf.Max(0.01f, shotFlashFadeSpeed));
+        Color color = shotFlashOverlay.color;
+        color.a = shotFlashAlpha;
+        shotFlashOverlay.color = color;
     }
 
     private static string FormatElapsedTime(float elapsedSeconds)
@@ -673,8 +929,34 @@ public class LaserTreatmentController : MonoBehaviour
             return;
         }
 
+        if (TryUndoFromSnapshot(out UndoShotSnapshot snapshot))
+        {
+            int removeCount = Mathf.Clamp(snapshot.shotCountDelta, 1, shotHistory.Count);
+            shotHistory.RemoveRange(shotHistory.Count - removeCount, removeCount);
+            shotCount = shotHistory.Count;
+            lastComputedGrade = shotHistory.Count > 0 ? shotHistory[shotHistory.Count - 1].spot_grade : 0;
+
+            QueueBlurRebuild(snapshot.blurRegion);
+            RefreshInfoBar(force: true);
+
+            if (shotHistory.Count > 0)
+            {
+                ExportShotRecord lastRecord = shotHistory[shotHistory.Count - 1];
+                LaserShotParameters statusParams = BuildParametersFromRecord(lastRecord);
+                LaserShotMetrics statusMetrics = new LaserShotMetrics { grade = lastRecord.spot_grade };
+                RefreshStatus(statusParams, statusMetrics);
+            }
+            else
+            {
+                RefreshStatus(null, default);
+            }
+
+            return;
+        }
+
         shotHistory.RemoveAt(shotHistory.Count - 1);
         shotCount = shotHistory.Count;
+        lastComputedGrade = shotHistory.Count > 0 ? shotHistory[shotHistory.Count - 1].spot_grade : 0;
         RebuildWorkingTextureFromHistory();
         RefreshInfoBar(force: true);
         RefreshStatus(null, default);
@@ -683,9 +965,11 @@ public class LaserTreatmentController : MonoBehaviour
     private void ClearAllShots()
     {
         shotHistory.Clear();
+        undoShotHistory.Clear();
         shotCount = 0;
+        lastComputedGrade = 0;
         RestoreBaseTexture();
-        QueueBlurRebuild(forceImmediate: true, fullRebuild: true);
+        RestoreBaseBlurTexture();
         RefreshInfoBar(force: true);
         RefreshStatus(null, default);
     }
@@ -717,7 +1001,14 @@ public class LaserTreatmentController : MonoBehaviour
                 power = parameters.powerMw,
                 spot_size_set = parameters.spotSizeUm,
                 exposure_time = parameters.durationMs,
-                wavelength = parameters.wavelengthNm
+                wavelength = parameters.wavelengthNm,
+                mode = parameters.mode.ToString(),
+                matrix_shape = parameters.shape.ToString(),
+                matrix_shape_param = GetEffectiveShapeParam(parameters),
+                matrix_spacing_x_spot = parameters.spacingXSpot,
+                matrix_rotation_deg = parameters.rotationDeg,
+                matrix_offset_dx = parameters.offsetDx,
+                matrix_offset_dy = parameters.offsetDy
             }
         };
     }
@@ -725,6 +1016,7 @@ public class LaserTreatmentController : MonoBehaviour
     private void RebuildWorkingTextureFromHistory()
     {
         RestoreBaseTexture();
+        undoShotHistory.Clear();
 
         if (workingTexture == null || physicalModel == null)
             return;
@@ -755,9 +1047,15 @@ public class LaserTreatmentController : MonoBehaviour
         QueueBlurRebuild(forceImmediate: true, fullRebuild: true);
 
         if (hasAny)
+        {
+            lastComputedGrade = lastMetrics.grade;
             RefreshStatus(lastParams, lastMetrics);
+        }
         else
+        {
+            lastComputedGrade = 0;
             RefreshStatus(null, default);
+        }
 
         RefreshInfoBar(force: true);
     }
@@ -773,7 +1071,22 @@ public class LaserTreatmentController : MonoBehaviour
         parameters.durationMs = record.@params.exposure_time;
         parameters.wavelengthNm = record.@params.wavelength;
         parameters.titrateMode = record.is_trial;
-        parameters.mode = LaserMode.Single;
+
+        if (!TryParseLaserMode(record.@params.mode, out parameters.mode))
+            parameters.mode = LaserMode.Single;
+
+        if (!TryParseMatrixShape(record.@params.matrix_shape, out parameters.shape))
+            parameters.shape = MatrixShape.Square;
+
+        parameters.shapeParam = record.@params.matrix_shape_param > 0
+            ? record.@params.matrix_shape_param
+            : Mathf.Max(1, parameters.shapeParam);
+        parameters.spacingXSpot = record.@params.matrix_spacing_x_spot > 0f
+            ? record.@params.matrix_spacing_x_spot
+            : parameters.spacingXSpot;
+        parameters.rotationDeg = record.@params.matrix_rotation_deg;
+        parameters.offsetDx = record.@params.matrix_offset_dx;
+        parameters.offsetDy = record.@params.matrix_offset_dy;
         return parameters;
     }
 
@@ -785,6 +1098,94 @@ public class LaserTreatmentController : MonoBehaviour
         workingTexture.SetPixels(baseTexturePixels);
         workingTexture.Apply(false, false);
         fundusRawImage.texture = workingTexture;
+    }
+
+    private void RestoreBaseBlurTexture()
+    {
+        if (focusBlurRawImage == null)
+            return;
+
+        if (workingTexture == null)
+            return;
+
+        EnsureBlurTextureInitialized();
+        if (workingBlurTexture == null)
+            return;
+
+        if (baseBlurPixels != null && baseBlurPixels.Length == workingTexture.width * workingTexture.height)
+        {
+            workingBlurTexture.SetPixels(baseBlurPixels);
+            workingBlurTexture.Apply(false, false);
+            focusBlurRawImage.texture = workingBlurTexture;
+            return;
+        }
+
+        QueueBlurRebuild(forceImmediate: true, fullRebuild: true);
+    }
+
+    private BlurRegion BuildRenderRegionForShot(Vector2Int point, LaserShotMetrics metrics)
+    {
+        if (workingTexture == null)
+            return default;
+
+        int centerX = point.x;
+        int centerY = workingTexture.height - 1 - point.y;
+        float supportRadius = metrics.effectiveRadiusPx * 1.95f;
+        int gridHalf = Mathf.CeilToInt(Mathf.Max(10f, supportRadius + 6f));
+
+        int xMin = Mathf.Max(0, centerX - gridHalf);
+        int xMax = Mathf.Min(workingTexture.width - 1, centerX + gridHalf);
+        int yMin = Mathf.Max(0, centerY - gridHalf);
+        int yMax = Mathf.Min(workingTexture.height - 1, centerY + gridHalf);
+
+        return new BlurRegion
+        {
+            x = xMin,
+            y = yMin,
+            width = xMax - xMin + 1,
+            height = yMax - yMin + 1
+        };
+    }
+
+    private UndoShotSnapshot CaptureUndoSnapshot(BlurRegion region, int shotCountDelta)
+    {
+        UndoShotSnapshot snapshot = default;
+        if (workingTexture == null || !region.IsValid)
+            return snapshot;
+
+        int xMin = region.x;
+        int yMin = region.y;
+        int patchW = region.width;
+        int patchH = region.height;
+        if (patchW <= 0 || patchH <= 0)
+            return snapshot;
+
+        snapshot.x = xMin;
+        snapshot.y = yMin;
+        snapshot.width = patchW;
+        snapshot.height = patchH;
+        snapshot.shotCountDelta = Mathf.Max(1, shotCountDelta);
+        snapshot.previousPixels = workingTexture.GetPixels(xMin, yMin, patchW, patchH);
+        return snapshot;
+    }
+
+    private bool TryUndoFromSnapshot(out UndoShotSnapshot snapshot)
+    {
+        snapshot = default;
+        if (workingTexture == null || undoShotHistory.Count <= 0)
+            return false;
+
+        int lastIndex = undoShotHistory.Count - 1;
+        snapshot = undoShotHistory[lastIndex];
+        undoShotHistory.RemoveAt(lastIndex);
+
+        if (!snapshot.IsValid)
+            return false;
+
+        workingTexture.SetPixels(snapshot.x, snapshot.y, snapshot.width, snapshot.height, snapshot.previousPixels);
+        workingTexture.Apply(false, false);
+        fundusRawImage.texture = workingTexture;
+        return true;
     }
 
     private void QueueBlurRebuild(BlurRegion dirtyRegion = default, bool forceImmediate = false, bool fullRebuild = false)
@@ -1167,6 +1568,24 @@ public class LaserTreatmentController : MonoBehaviour
         }
 
         LaserShotParameters p = lastParams.Value;
+        string matrixText = string.Empty;
+        if (p.mode == LaserMode.Matrix)
+        {
+            int effectiveShapeParam = GetEffectiveShapeParam(p);
+            matrixText =
+                $"\nMode: Matrix" +
+                $"\nShape: {p.shape}" +
+                $"\nshape_param: {p.shapeParam} -> {effectiveShapeParam} ({GetShapeParamMeaning(p.shape)}, range {GetShapeParamRangeText(p.shape)})" +
+                $"\nGenerated shots: {GetGeneratedShotCount(p)}" +
+                $"\nSpacing: {p.spacingXSpot:F2} x spot" +
+                $"\nRotation: {p.rotationDeg:F1} deg" +
+                $"\nOffset: ({p.offsetDx:F1}, {p.offsetDy:F1})";
+        }
+        else
+        {
+            matrixText = "\nMode: Single";
+        }
+
         statusText.text =
             $"Shots: {shotCount}\n" +
             $"Last Grade: {lastMetrics.grade}\n" +
@@ -1175,8 +1594,9 @@ public class LaserTreatmentController : MonoBehaviour
             $"Power: {p.powerMw:F0} mW\n" +
             $"Duration: {p.durationMs:F0} ms\n" +
             $"Spot: {p.spotSizeUm:F0} um\n" +
-            $"Wave: {p.wavelengthNm:F0} nm\n" +
-            calibrationText;
+            $"Wave: {p.wavelengthNm:F0} nm" +
+            matrixText +
+            $"\n{calibrationText}";
     }
 
     private Texture2D CloneTexture(Texture2D source, Color[] pixels = null)
@@ -1189,15 +1609,25 @@ public class LaserTreatmentController : MonoBehaviour
 
     private Vector2Int GetCurrentAimPointTopLeft()
     {
-        Vector2 center = fovController.CurrentCenterPx;
-        Vector2 litCenter = GetLitRegionCenterPx(center);
-        float litRadiusPx = GetLitRegionRadiusPx();
-        Vector2 target = litCenter + aimOffsetNormalized * litRadiusPx;
+        Vector2 center = fovController != null ? fovController.CurrentCenterPx : Vector2.zero;
+        float diameterPx = fovController != null ? fovController.CurrentDiameterPx : 0f;
+        Vector2 viewportDiameter = GetViewportDiameter();
+
+        if (diameterPx <= 0.001f || viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
+        {
+            return new Vector2Int(
+                Mathf.RoundToInt(center.x),
+                Mathf.RoundToInt(center.y));
+        }
+
+        float viewportUiDiameter = Mathf.Min(viewportDiameter.x, viewportDiameter.y);
+        float uiScale = viewportUiDiameter / diameterPx;
+        Vector2 aimAnchoredPosition = GetAimAnchoredPosition();
+        Vector2 localOffsetPx = aimAnchoredPosition / uiScale;
 
         return new Vector2Int(
-            Mathf.RoundToInt(target.x),
-            Mathf.RoundToInt(target.y)
-        );
+            Mathf.RoundToInt(center.x + localOffsetPx.x),
+            Mathf.RoundToInt(center.y - localOffsetPx.y));
     }
 
     private void HandleAimInput()
@@ -1225,54 +1655,90 @@ public class LaserTreatmentController : MonoBehaviour
         if (dir == Vector2.zero)
             return;
 
-        aimOffsetNormalized += dir.normalized * aimMoveSpeedNormalized * Time.deltaTime;
-        aimOffsetNormalized = ClampAimOffsetToLitRegion(aimOffsetNormalized);
+        Vector2 viewportDiameter = GetViewportDiameter();
+        float speedMultiplier = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            ? fineAimSpeedMultiplier
+            : 1f;
+        float moveDistance = aimMoveSpeedNormalized * speedMultiplier * Time.deltaTime * Mathf.Min(viewportDiameter.x, viewportDiameter.y);
+        Vector2 candidate = GetAimAnchoredPosition() + dir.normalized * moveDistance;
+        aimOffsetNormalized = ConvertAnchoredPositionToAimOffset(
+            ClampAimAnchoredPositionToLitRegion(candidate),
+            viewportDiameter);
     }
 
-    private Vector2 ClampAimOffsetToLitRegion(Vector2 offset)
+    private Vector2 ClampAimAnchoredPositionToLitRegion(Vector2 anchoredPosition)
     {
-        float radius = Mathf.Max(0.05f, aimRadiusNormalized);
-        if (offset.sqrMagnitude <= radius * radius)
-            return offset;
+        Vector2 viewportDiameter = GetViewportDiameter();
+        if (viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
+            return Vector2.zero;
 
-        return offset.normalized * radius;
+        float viewportRadius = Mathf.Min(viewportDiameter.x, viewportDiameter.y) * 0.5f;
+        if (viewportRadius <= 0.001f)
+            return Vector2.zero;
+
+        float minX = -viewportRadius;
+        float maxX = viewportRadius;
+        if (slitLamp != null)
+        {
+            Vector2 slitBounds = slitLamp.GetReticleBoundsNormalized(reticleFadeZoneFraction);
+            minX = Mathf.Max(minX, (slitBounds.x - 0.5f) * viewportDiameter.x);
+            maxX = Mathf.Min(maxX, (slitBounds.y - 0.5f) * viewportDiameter.x);
+        }
+
+        if (minX > maxX)
+        {
+            float mid = (minX + maxX) * 0.5f;
+            minX = mid;
+            maxX = mid;
+        }
+
+        Vector2 clamped = anchoredPosition;
+        clamped.x = Mathf.Clamp(clamped.x, minX, maxX);
+
+        float radialYLimit = Mathf.Sqrt(Mathf.Max(0f, viewportRadius * viewportRadius - clamped.x * clamped.x));
+        clamped.y = Mathf.Clamp(clamped.y, -radialYLimit, radialYLimit);
+
+        return clamped;
     }
 
-    private float GetLitRegionRadiusPx()
+    private Vector2 ConvertAnchoredPositionToAimOffset(Vector2 anchoredPosition, Vector2 viewportDiameter)
     {
-        if (fovController == null)
-            return 0f;
+        if (viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
+            return Vector2.zero;
 
-        return fovController.CurrentDiameterPx * Mathf.Max(0.05f, aimRadiusNormalized);
+        return new Vector2(
+            Mathf.Clamp(anchoredPosition.x / viewportDiameter.x, -0.5f, 0.5f),
+            Mathf.Clamp(anchoredPosition.y / viewportDiameter.y, -0.5f, 0.5f));
     }
 
-    private Vector2 GetLitRegionCenterPx(Vector2 fallbackCenter)
-    {
-        if (slitLamp == null || fovController == null)
-            return fallbackCenter;
-
-        float slitNorm = slitLamp.GetSlitCenterXNormalized();
-        float offsetXPx = (slitNorm - 0.5f) * fovController.CurrentDiameterPx;
-        return fallbackCenter + new Vector2(offsetXPx, 0f);
-    }
-
-    private Vector2 GetAimAnchoredPosition()
+    private Vector2 GetViewportDiameter()
     {
         if (circularViewportRect == null)
             return Vector2.zero;
 
-        float viewportRadiusPx = circularViewportRect.rect.width * 0.5f;
-        float localRadiusPx = viewportRadiusPx * Mathf.Max(0.05f, aimRadiusNormalized);
-        Vector2 localOffset = aimOffsetNormalized * localRadiusPx;
+        return new Vector2(
+            circularViewportRect.rect.width,
+            circularViewportRect.rect.height);
+    }
 
-        float slitOffsetXPx = 0f;
-        if (slitLamp != null)
-        {
-            float slitNorm = slitLamp.GetSlitCenterXNormalized();
-            slitOffsetXPx = (slitNorm - 0.5f) * circularViewportRect.rect.width;
-        }
+    private float GetSlitOffsetUiX()
+    {
+        if (slitLamp == null || circularViewportRect == null)
+            return 0f;
 
-        return new Vector2(slitOffsetXPx, 0f) + localOffset;
+        Vector2 slitBounds = slitLamp.GetSlitBoundsNormalized();
+        return ((slitBounds.x + slitBounds.y) * 0.5f - 0.5f) * circularViewportRect.rect.width;
+    }
+
+    private Vector2 GetAimAnchoredPosition()
+    {
+        Vector2 viewportDiameter = GetViewportDiameter();
+        if (viewportDiameter.x <= 0f || viewportDiameter.y <= 0f)
+            return Vector2.zero;
+
+        return ClampAimAnchoredPositionToLitRegion(new Vector2(
+            aimOffsetNormalized.x * viewportDiameter.x,
+            aimOffsetNormalized.y * viewportDiameter.y));
     }
 
     private Texture2D CreateBlurredTexture(Texture2D source, int radius)

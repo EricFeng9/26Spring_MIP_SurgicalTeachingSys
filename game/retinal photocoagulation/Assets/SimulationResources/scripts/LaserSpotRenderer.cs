@@ -25,7 +25,7 @@ public static class LaserSpotRenderer
         public float valueLift;
         public float softness;
         public float coreFill;
-        public float centerDarken;
+        public float centerHighlight;
     }
 
     public static LaserShotMetrics RenderShot(
@@ -95,10 +95,11 @@ public static class LaserSpotRenderer
                 float darkenMask = occluderMask * profile.occluderStrength * edgeSoft;
                 filled = Color.Lerp(filled, occluderColor, darkenMask);
 
-                if (profile.centerDarken > 0f)
+                if (profile.centerHighlight > 0f)
                 {
-                    float centerMask = Gaussian(nx, ny, 0.08f, 0.02f, 0.34f, 0.30f, 2.2f) * edgeSoft;
-                    filled = Color.Lerp(filled, Color.Lerp(occluderColor, lesionColor, 0.25f), centerMask * profile.centerDarken);
+                    float centerMask = Gaussian(nx, ny, 0.02f, 0.01f, 0.28f, 0.24f, 1.9f) * edgeSoft;
+                    Color centerColor = Color.Lerp(lesionColor, Color.white, 0.24f + 0.22f * appearance);
+                    filled = Color.Lerp(filled, centerColor, centerMask * profile.centerHighlight);
                 }
 
                 float peripheralSoftening = Gaussian(nx, ny, 0f, 0f, 1.35f, 1.30f, 2.0f);
@@ -145,7 +146,7 @@ public static class LaserSpotRenderer
                     valueLift = 0.08f,
                     softness = 1.35f,
                     coreFill = 0.82f,
-                    centerDarken = 0f
+                    centerHighlight = 0f
                 };
                 to = from;
                 to.mainBlobScaleX = 0.70f;
@@ -180,7 +181,7 @@ public static class LaserSpotRenderer
                     valueLift = 0.12f,
                     softness = 1.28f,
                     coreFill = 0.86f,
-                    centerDarken = 0f
+                    centerHighlight = 0f
                 };
                 to = from;
                 to.mainBlobScaleX = 0.80f;
@@ -215,7 +216,7 @@ public static class LaserSpotRenderer
                     valueLift = 0.15f,
                     softness = 1.18f,
                     coreFill = 0.90f,
-                    centerDarken = 0.05f
+                    centerHighlight = 0.14f
                 };
                 to = from;
                 to.mainBlobScaleX = 0.88f;
@@ -223,7 +224,7 @@ public static class LaserSpotRenderer
                 to.shoulderWeight = 0.42f;
                 to.supportWeight = 0.16f;
                 to.occluderStrength = 0.30f;
-                to.centerDarken = 0.10f;
+                to.centerHighlight = 0.22f;
                 break;
 
             default:
@@ -245,12 +246,12 @@ public static class LaserSpotRenderer
                     occluderScaleX = 0.74f,
                     occluderScaleY = 0.58f,
                     occluderStrength = 0.34f,
-                    hueShift = 0.016f,
-                    saturationScale = 0.64f,
-                    valueLift = 0.16f,
+                    hueShift = 0.012f,
+                    saturationScale = 0.48f,
+                    valueLift = 0.24f,
                     softness = 1.08f,
                     coreFill = 0.92f,
-                    centerDarken = 0.14f
+                    centerHighlight = 0.28f
                 };
                 to = from;
                 to.mainBlobScaleX = 0.96f;
@@ -258,7 +259,9 @@ public static class LaserSpotRenderer
                 to.shoulderWeight = 0.46f;
                 to.supportWeight = 0.20f;
                 to.occluderStrength = 0.40f;
-                to.centerDarken = 0.20f;
+                to.saturationScale = 0.42f;
+                to.valueLift = 0.30f;
+                to.centerHighlight = 0.40f;
                 break;
         }
 
@@ -290,7 +293,7 @@ public static class LaserSpotRenderer
             valueLift = Mathf.Lerp(a.valueLift, b.valueLift, t),
             softness = Mathf.Lerp(a.softness, b.softness, t),
             coreFill = Mathf.Lerp(a.coreFill, b.coreFill, t),
-            centerDarken = Mathf.Lerp(a.centerDarken, b.centerDarken, t)
+            centerHighlight = Mathf.Lerp(a.centerHighlight, b.centerHighlight, t)
         };
     }
 

@@ -70,6 +70,7 @@ public class LaserPhysicalModel
     public const float Grade1Upper = 2.989f;
     public const float Grade2Upper = 4.820f;
     public const float Grade3Upper = 7.026f;
+    private const float SpotRadiusRenderScale = 1.5f;
 
     private readonly float beta0;
 
@@ -110,7 +111,7 @@ public class LaserPhysicalModel
             grade = grade,
             normalizedIntensity = intensity,
             gradeProgress01 = gradeProgress01,
-            effectiveRadiusPx = Mathf.Max(1f, beamRadiusPx * radiusScale),
+            effectiveRadiusPx = Mathf.Max(1f, beamRadiusPx * radiusScale * SpotRadiusRenderScale),
             appearanceStrength = Mathf.Lerp(0.24f, 1f, intensity)
         };
     }
