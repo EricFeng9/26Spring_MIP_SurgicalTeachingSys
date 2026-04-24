@@ -1,0 +1,83 @@
+[
+  {
+    "rank": 1,
+    "title": "Artificial Intelligence in Surgical Feedback: A Systematic Scoping Review.",
+    "doi": "10.1016/j.jsurg.2026.103908",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/01_Artificial Intelligence in Surgical Feedback_ A Systematic Scoping Review..pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 2
+  },
+  {
+    "rank": 2,
+    "title": "Educational Impact of Automated Feedback Systems in Surgical Training: A Systematic Review With Quantitative Synthesis.",
+    "doi": "10.1016/j.jsurg.2026.103879",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/02_Educational Impact of Automated Feedback Systems in Surgical Training_ A Systematic Review With Quantitative Synthesis..pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 2
+  },
+  {
+    "rank": 3,
+    "title": "Training Feedback Tailored to Technical Skills Expedites Proficiency in Performing Watertight Vesicourethral Anastomoses: A Randomized Controlled Trial.",
+    "doi": "10.1016/j.jsurg.2026.103937",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/03_Training Feedback Tailored to Technical Skills Expedites Proficiency in Performing Watertight Vesicourethral Anastomoses.pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 4
+  },
+  {
+    "rank": 4,
+    "title": "Evaluating real-time voice AI-based virtual patients for authentic communication training.",
+    "doi": "10.1080/0142159X.2026.2645021",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/04_Evaluating real-time voice AI-based virtual patients for authentic communication training..pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 2
+  },
+  {
+    "rank": 5,
+    "title": "Leveraging artificial intelligence to accelerate competency development in diagnostic reasoning of medical students.",
+    "doi": "10.1080/0142159X.2026.2641769",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/05_Leveraging artificial intelligence to accelerate competency development in diagnostic reasoning of medical students..pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 2
+  },
+  {
+    "rank": 6,
+    "title": "Enabling micro-assessments of skills in the simulated setting using temporal artificial intelligence-models.",
+    "doi": "10.1080/0142159X.2025.2555353",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/06_Enabling micro-assessments of skills in the simulated setting using temporal artificial intelligence-models..pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 3
+  },
+  {
+    "rank": 7,
+    "title": "Towards accurate and interpretable competency-based assessment: enhancing clinical competency assessment through multimodal AI and anomaly detection.",
+    "doi": "10.1038/s41746-025-02299-2",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/07_Towards accurate and interpretable competency-based assessment_ enhancing clinical competency assessment through multimo.pdf",
+    "status": "downloaded",
+    "method": "direct_pdf",
+    "tried_count": 1
+  },
+  {
+    "rank": 8,
+    "title": "Can ChatGPT Teach Tendon Repair Suturing? A Comparison With Video Instruction in a Simulation-Based Environment: A Pilot Study.",
+    "doi": "10.1016/j.jsurg.2025.103867",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/08_Can ChatGPT Teach Tendon Repair Suturing_ A Comparison With Video Instruction in a Simulation-Based Environment_ A Pilot.pdf",
+    "status": "failed",
+    "method": "none",
+    "tried_count": 2
+  },
+  {
+    "rank": 9,
+    "title": "Improving Generative AI Student Feedback: Direct Preference Optimization with Teachers in the Loop.",
+    "doi": "N/A",
+    "file": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/docs/week9-midterm/papers/09_Improving Generative AI Student Feedback_ Direct Preference Optimization with Teachers in the Loop..pdf",
+    "status": "downloaded",
+    "method": "html_pdf_link",
+    "tried_count": 1
+  }
+]
