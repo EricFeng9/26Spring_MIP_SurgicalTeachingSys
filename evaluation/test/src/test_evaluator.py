@@ -28,12 +28,14 @@ def _find_sample_paths(sample_root: str) -> tuple[str, str]:
 def run_sample_test() -> tuple[int, str]:
     """读取 Temp 样本输入并输出评分 json。"""
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-    sample_folder_name = "Temp770298_sample"
+    sample_folder_name = "Temp770298_sample_v4"
     sample_root = os.path.join(project_root, "evaluation", "test", "sample_data", sample_folder_name)
     question_path, player_path = _find_sample_paths(sample_root)
     base_config_path = os.path.join(project_root, "evaluation", "docs", "config.json")
-    output_path = os.path.join(project_root, "evaluation", "test", "output", f"{sample_folder_name}_output.json")
-    runtime_config_path = os.path.join(project_root, "evaluation", "test", "output", "runtime_config_for_test.json")
+    output_dir = os.path.join(project_root, "evaluation", "test", "output", sample_folder_name)
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "score_result.json")
+    runtime_config_path = os.path.join(output_dir, "runtime_config_for_test.json")
 
     # 调用侧注入所有重建超参数（便于快速迭代调参）
     with open(base_config_path, "r", encoding="utf-8") as f:
@@ -45,6 +47,15 @@ def run_sample_test() -> tuple[int, str]:
         "inner_ratio_limit": 0.20,
         "inner_abs_limit": 3,
         "min_outer_points": 8,
+    }
+    scoring_policy["param_tolerance_abs"] = {
+        "power": 25.0,
+        "spot_size": 30.0,
+        "exposure_time": 10.0,
+    }
+    scoring_policy["spatial_parameter_field"] = {
+        "field_resolution": "source_image_pixels",
+        "field_sigma_px": 25.0,
     }
     with open(runtime_config_path, "w", encoding="utf-8") as f:
         json.dump(runtime_config, f, ensure_ascii=False, indent=2)
@@ -58,11 +69,32 @@ def run_sample_test() -> tuple[int, str]:
     )
 
     if status_code == 1:
+        with open(output_path, "r", encoding="utf-8") as f:
+            result = json.load(f)
+        dimensions = result.get("dimensions", {})
+        dim1 = dimensions.get("dim1_position", {})
+        dim2 = dimensions.get("dim2_energy", {})
+        dim3 = dimensions.get("dim3_density", {})
+        dim2_sub = dim2.get("sub_scores", {})
+
         print(f"评估成功: {msg}")
-        print(f"输入题目: {question_path}")
-        print(f"输入玩家: {player_path}")
+        print(f"GT输入: {question_path}")
+        print(f"Player输入: {player_path}")
+        print(f"输出目录: {output_dir}")
         print(f"输入配置: {runtime_config_path}")
-        print(f"输出文件: {output_path}")
+        print(f"评分结果: {output_path}")
+        print(f"总分: {result.get('total_score')} / 100")
+        print(f"维度一 位置与范围: {dim1.get('score')} / {dim1.get('max_score')}, IoU={dim1.get('iou')}")
+        print(f"维度二 激光参数空间适配度: {dim2.get('score')} / {dim2.get('max_score')}")
+        for key in ("power", "spot_size", "exposure_time", "wavelength"):
+            item = dim2_sub.get(key, {})
+            print(
+                f"  - {key}: {item.get('score')} / {item.get('max_score')}, "
+                f"mean_error={item.get('mean_error')}, regions={item.get('main_error_regions')}"
+            )
+        print(f"维度三 密度与均匀度: {dim3.get('score')} / {dim3.get('max_score')}")
+        print(f"Overlay可视化: {result.get('debug_visualization_paths')}")
+        print(f"维度二热力图: {dim2.get('visualization')}")
     else:
         print(f"评估失败: {msg}")
     return status_code, msg

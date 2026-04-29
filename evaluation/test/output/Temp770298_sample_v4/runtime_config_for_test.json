@@ -1,0 +1,55 @@
+{
+  "scoring_policy": {
+    "param_tolerance_tau": {
+      "power": 0.2,
+      "_power": "功率容许偏差比例(20%)",
+      "spot_size": 0.15,
+      "_spot_size": "光斑大小容许偏差比例(15%)",
+      "exposure_time": 0.25,
+      "_exposure_time": "曝光时间容许偏差比例(25%)",
+      "wavelength": 0.1,
+      "_wavelength": "波长容许偏差比例(10%)"
+    },
+    "spacing_thresholds": {
+      "sigma_good_sq": 25.0,
+      "_sigma_good_sq": "优秀间距方差上限(像素^2)",
+      "sigma_max_sq": 100.0,
+      "_sigma_max_sq": "容忍间距方差上限(像素^2)",
+      "r_value_excellent": 1.2,
+      "_r_value_excellent": "R指数优秀比例(>1.2)",
+      "r_value_pass": 0.8,
+      "_r_value_pass": "R指数合格阈值(0.8)"
+    },
+    "penalty_rules": {
+      "points_per_overlap": 1.0,
+      "_points_per_overlap": "每个光斑重叠扣除的分数",
+      "spot_size_um_to_px": 0.03,
+      "_spot_size_um_to_px": "当 spot_size 单位为 um 时换算到像素的比例",
+      "overlap_distance_ratio": 1.0,
+      "_overlap_distance_ratio": "重叠判定阈值系数（1.0=中心距<平均直径）"
+    },
+    "player_area_rebuild": {
+      "ratio_candidates": [
+        0.35,
+        0.3,
+        0.25,
+        0.2,
+        0.15,
+        0.1
+      ],
+      "inner_iqr_k": 0.75,
+      "inner_ratio_limit": 0.2,
+      "inner_abs_limit": 3,
+      "min_outer_points": 8
+    },
+    "param_tolerance_abs": {
+      "power": 25.0,
+      "spot_size": 30.0,
+      "exposure_time": 10.0
+    },
+    "spatial_parameter_field": {
+      "field_resolution": "source_image_pixels",
+      "field_sigma_px": 25.0
+    }
+  }
+}

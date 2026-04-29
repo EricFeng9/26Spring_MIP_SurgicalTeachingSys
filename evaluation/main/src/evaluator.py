@@ -311,6 +311,13 @@ def _resolve_base_image_path(question_json_path: str, question_data: dict[str, A
     return os.path.join(folder, sorted(pngs)[0]) if pngs else None
 
 
+def _resolve_player_image_path(player_json_path: str) -> str | None:
+    sibling_png = os.path.splitext(player_json_path)[0] + ".png"
+    if os.path.exists(sibling_png):
+        return sibling_png
+    return None
+
+
 def _iter_polygons(geom):
     if geom is None:
         return
@@ -413,6 +420,338 @@ def _save_overlay_visualization(
     return output_paths
 
 
+def _param_value(params: dict[str, Any], key: str) -> float:
+    if key == "spot_size":
+        return float(params.get("spot_size", params.get("spot_size_set", 0.0)))
+    return float(params.get(key, 0.0))
+
+
+def _image_size_from_context(base_image_path: str | None, geoms: list[Any]) -> tuple[int, int]:
+    if base_image_path and os.path.exists(base_image_path):
+        with Image.open(base_image_path) as img:
+            return img.size
+
+    max_x = 1.0
+    max_y = 1.0
+    for geom in geoms:
+        if geom is None:
+            continue
+        minx, miny, gx, gy = geom.bounds
+        max_x = max(max_x, gx)
+        max_y = max(max_y, gy)
+    return int(math.ceil(max_x)) + 10, int(math.ceil(max_y)) + 10
+
+
+def _rasterize_geom_crop(geom, bbox: tuple[int, int, int, int]) -> np.ndarray:
+    minx, miny, maxx, maxy = bbox
+    width = maxx - minx + 1
+    height = maxy - miny + 1
+    mask_img = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask_img)
+    for poly in _iter_polygons(geom):
+        ext = [(float(x) - minx, float(y) - miny) for x, y in poly.exterior.coords]
+        draw.polygon(ext, fill=255)
+        for hole in poly.interiors:
+            pts = [(float(x) - minx, float(y) - miny) for x, y in hole.coords]
+            draw.polygon(pts, fill=0)
+    return np.array(mask_img, dtype=np.uint8) > 0
+
+
+def _valid_param_shots(shots: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    out = []
+    for shot in shots:
+        pos = shot.get("pos", [None, None])
+        params = shot.get("params", {})
+        if not isinstance(pos, list) or len(pos) < 2:
+            continue
+        try:
+            _param_value(params, key)
+            float(pos[0])
+            float(pos[1])
+        except (TypeError, ValueError):
+            continue
+        out.append(shot)
+    return out
+
+
+def _build_continuous_param_field(
+    shots: list[dict[str, Any]],
+    key: str,
+    bbox: tuple[int, int, int, int],
+    mask: np.ndarray,
+    sigma_px: float,
+) -> np.ndarray:
+    minx, miny, maxx, maxy = bbox
+    yy, xx = np.mgrid[miny : maxy + 1, minx : maxx + 1]
+    sum_w = np.zeros(mask.shape, dtype=float)
+    sum_v = np.zeros(mask.shape, dtype=float)
+    sigma_sq = max(sigma_px, 1e-6) ** 2
+
+    for shot in _valid_param_shots(shots, key):
+        x, y = float(shot["pos"][0]), float(shot["pos"][1])
+        value = _param_value(shot.get("params", {}), key)
+        dist_sq = (xx - x) ** 2 + (yy - y) ** 2
+        weight = np.exp(-dist_sq / (2.0 * sigma_sq))
+        sum_w += weight
+        sum_v += weight * value
+
+    field = np.full(mask.shape, np.nan, dtype=float)
+    valid = mask & (sum_w > 1e-9)
+    field[valid] = sum_v[valid] / sum_w[valid]
+    return field
+
+
+def _build_nearest_param_field(
+    shots: list[dict[str, Any]],
+    key: str,
+    bbox: tuple[int, int, int, int],
+    mask: np.ndarray,
+) -> np.ndarray:
+    minx, miny, maxx, maxy = bbox
+    yy, xx = np.mgrid[miny : maxy + 1, minx : maxx + 1]
+    best_dist = np.full(mask.shape, np.inf, dtype=float)
+    field = np.full(mask.shape, np.nan, dtype=float)
+
+    for shot in _valid_param_shots(shots, key):
+        x, y = float(shot["pos"][0]), float(shot["pos"][1])
+        value = _param_value(shot.get("params", {}), key)
+        dist_sq = (xx - x) ** 2 + (yy - y) ** 2
+        update = mask & (dist_sq < best_dist)
+        best_dist[update] = dist_sq[update]
+        field[update] = value
+    return field
+
+
+def _blend_rgba(base: tuple[int, int, int, int], overlay: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    alpha = overlay[3] / 255.0
+    return (
+        int(base[0] * (1 - alpha) + overlay[0] * alpha),
+        int(base[1] * (1 - alpha) + overlay[1] * alpha),
+        int(base[2] * (1 - alpha) + overlay[2] * alpha),
+        255,
+    )
+
+
+def _lerp_color(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[int, int, int]:
+    t = max(0.0, min(1.0, t))
+    return (
+        int(a[0] + (b[0] - a[0]) * t),
+        int(a[1] + (b[1] - a[1]) * t),
+        int(a[2] + (b[2] - a[2]) * t),
+    )
+
+
+def _heat_color(t: float, error_mode: bool) -> tuple[int, int, int, int]:
+    t = max(0.0, min(1.0, t))
+    if error_mode:
+        stops = [
+            (0.0, (40, 180, 80)),
+            (0.35, (245, 215, 65)),
+            (0.65, (245, 135, 35)),
+            (1.0, (220, 40, 35)),
+        ]
+    else:
+        stops = [
+            (0.0, (45, 90, 210)),
+            (0.35, (40, 190, 210)),
+            (0.70, (245, 215, 70)),
+            (1.0, (220, 45, 35)),
+        ]
+    for idx in range(len(stops) - 1):
+        left_t, left_c = stops[idx]
+        right_t, right_c = stops[idx + 1]
+        if left_t <= t <= right_t:
+            return (*_lerp_color(left_c, right_c, (t - left_t) / (right_t - left_t)), 165)
+    return (*stops[-1][1], 165)
+
+
+def _save_field_heatmap(
+    base_image_path: str | None,
+    image_size: tuple[int, int],
+    field: np.ndarray,
+    bbox: tuple[int, int, int, int],
+    output_path: str,
+    vmin: float,
+    vmax: float,
+    error_mode: bool,
+) -> str:
+    if base_image_path and os.path.exists(base_image_path):
+        base_img = Image.open(base_image_path).convert("RGBA")
+    else:
+        base_img = Image.new("RGBA", image_size, (20, 20, 20, 255))
+
+    overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
+    pix = overlay.load()
+    minx, miny, _, _ = bbox
+    denom = max(vmax - vmin, 1e-9)
+
+    for row in range(field.shape[0]):
+        for col in range(field.shape[1]):
+            value = field[row, col]
+            if np.isnan(value):
+                continue
+            pix[minx + col, miny + row] = _heat_color((float(value) - vmin) / denom, error_mode)
+
+    combined = Image.alpha_composite(base_img, overlay)
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    combined.save(output_path)
+    return output_path
+
+
+def _main_error_regions(error_field: np.ndarray, bbox: tuple[int, int, int, int], label: str) -> list[str]:
+    valid = ~np.isnan(error_field)
+    if not np.any(valid):
+        return []
+    high = valid & (error_field >= 0.6)
+    if not np.any(high):
+        return []
+
+    rows, cols = np.where(high)
+    minx, miny, maxx, maxy = bbox
+    cx = minx + float(np.mean(cols))
+    cy = miny + float(np.mean(rows))
+    midx = (minx + maxx) / 2.0
+    midy = (miny + maxy) / 2.0
+    vertical = "上方" if cy < midy else "下方"
+    horizontal = "左侧" if cx < midx else "右侧"
+    return [f"{vertical}{horizontal}{label}偏差较高"]
+
+
+def _score_param_field(error_field: np.ndarray, max_score: float) -> tuple[float, float]:
+    valid = ~np.isnan(error_field)
+    if not np.any(valid):
+        return 0.0, 1.0
+    mean_error = float(np.mean(error_field[valid]))
+    return max_score * (1.0 - mean_error), mean_error
+
+
+def _score_spatial_parameters(
+    gt_shots: list[dict[str, Any]],
+    player_shots: list[dict[str, Any]],
+    scoring_geom,
+    base_image_path: str | None,
+    output_json_path: str,
+    tolerance_abs: dict[str, float],
+    field_sigma_px: float,
+) -> tuple[float, dict[str, Any], dict[str, str]]:
+    if scoring_geom is None or scoring_geom.area <= 0:
+        empty_subscores = {}
+        for key, max_score in {"power": 11.0, "spot_size": 8.0, "exposure_time": 8.0, "wavelength": 8.0}.items():
+            empty_subscores[key] = {
+                "score": 0.0,
+                "max_score": max_score,
+                "mean_error": 1.0,
+                "main_error_regions": ["无有效评分区域"],
+            }
+        return 0.0, empty_subscores, {}
+
+    image_size = _image_size_from_context(base_image_path, [scoring_geom])
+    width, height = image_size
+    minx, miny, maxx, maxy = scoring_geom.bounds
+    bbox = (
+        max(0, int(math.floor(minx))),
+        max(0, int(math.floor(miny))),
+        min(width - 1, int(math.ceil(maxx))),
+        min(height - 1, int(math.ceil(maxy))),
+    )
+    mask = _rasterize_geom_crop(scoring_geom, bbox)
+    heatmap_dir = os.path.join(os.path.dirname(os.path.abspath(output_json_path)), "heatmaps")
+
+    field_pairs: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    error_fields: dict[str, np.ndarray] = {}
+    sub_scores: dict[str, Any] = {}
+    param_specs = {
+        "power": ("power", 11.0, "功率"),
+        "spot_size": ("spot_size", 8.0, "光斑大小"),
+        "exposure_time": ("exposure_time", 8.0, "曝光时间"),
+    }
+
+    for key, (field_key, max_score, cn_label) in param_specs.items():
+        gt_field = _build_continuous_param_field(gt_shots, field_key, bbox, mask, field_sigma_px)
+        player_field = _build_continuous_param_field(player_shots, field_key, bbox, mask, field_sigma_px)
+        valid = mask & ~np.isnan(gt_field) & ~np.isnan(player_field)
+        error = np.full(mask.shape, np.nan, dtype=float)
+        tol = max(float(tolerance_abs.get(key, 1.0)), 1e-6)
+        error[valid] = np.minimum(1.0, np.abs(player_field[valid] - gt_field[valid]) / tol)
+        score, mean_error = _score_param_field(error, max_score)
+
+        field_pairs[key] = (gt_field, player_field)
+        error_fields[key] = error
+        sub_scores[key] = {
+            "score": round(score, 2),
+            "max_score": max_score,
+            "mean_error": round(mean_error, 4),
+            "main_error_regions": _main_error_regions(error, bbox, cn_label),
+        }
+
+    gt_wave = _build_nearest_param_field(gt_shots, "wavelength", bbox, mask)
+    player_wave = _build_nearest_param_field(player_shots, "wavelength", bbox, mask)
+    wave_valid = mask & ~np.isnan(gt_wave) & ~np.isnan(player_wave)
+    wave_error = np.full(mask.shape, np.nan, dtype=float)
+    wave_error[wave_valid] = (gt_wave[wave_valid] != player_wave[wave_valid]).astype(float)
+    wave_score, wave_mean_error = _score_param_field(wave_error, 8.0)
+    field_pairs["wavelength"] = (gt_wave, player_wave)
+    error_fields["wavelength"] = wave_error
+    sub_scores["wavelength"] = {
+        "score": round(wave_score, 2),
+        "max_score": 8.0,
+        "mean_error": round(wave_mean_error, 4),
+        "main_error_regions": _main_error_regions(wave_error, bbox, "波长"),
+    }
+
+    total_error = np.full(mask.shape, np.nan, dtype=float)
+    weighted_sum = np.zeros(mask.shape, dtype=float)
+    valid_any = np.zeros(mask.shape, dtype=bool)
+    weights = {"power": 11.0 / 35.0, "spot_size": 8.0 / 35.0, "exposure_time": 8.0 / 35.0, "wavelength": 8.0 / 35.0}
+    for key, weight in weights.items():
+        err = error_fields[key]
+        valid = ~np.isnan(err)
+        weighted_sum[valid] += err[valid] * weight
+        valid_any |= valid
+    total_error[valid_any] = weighted_sum[valid_any]
+
+    visualization: dict[str, str] = {}
+    filename_map = {
+        "power": ("gt_power_heatmap", "player_power_heatmap", "error_power_heatmap"),
+        "spot_size": ("gt_spot_size_heatmap", "player_spot_size_heatmap", "error_spot_size_heatmap"),
+        "exposure_time": ("gt_exposure_time_heatmap", "player_exposure_time_heatmap", "error_exposure_time_heatmap"),
+        "wavelength": ("gt_wavelength_map", "player_wavelength_map", "error_wavelength_map"),
+    }
+
+    for key, (gt_name, player_name, error_name) in filename_map.items():
+        gt_field, player_field = field_pairs[key]
+        raw_values = np.concatenate([gt_field[~np.isnan(gt_field)], player_field[~np.isnan(player_field)]])
+        if raw_values.size == 0:
+            raw_min, raw_max = 0.0, 1.0
+        else:
+            raw_min, raw_max = float(np.min(raw_values)), float(np.max(raw_values))
+            if raw_min == raw_max:
+                raw_max = raw_min + 1.0
+        visualization[gt_name] = _save_field_heatmap(
+            base_image_path, image_size, gt_field, bbox, os.path.join(heatmap_dir, f"{gt_name}.png"), raw_min, raw_max, False
+        )
+        visualization[player_name] = _save_field_heatmap(
+            base_image_path, image_size, player_field, bbox, os.path.join(heatmap_dir, f"{player_name}.png"), raw_min, raw_max, False
+        )
+        visualization[error_name] = _save_field_heatmap(
+            base_image_path, image_size, error_fields[key], bbox, os.path.join(heatmap_dir, f"{error_name}.png"), 0.0, 1.0, True
+        )
+
+    visualization["total_error_heatmap"] = _save_field_heatmap(
+        base_image_path,
+        image_size,
+        total_error,
+        bbox,
+        os.path.join(heatmap_dir, "error_total_heatmap.png"),
+        0.0,
+        1.0,
+        True,
+    )
+
+    total_score = sum(float(item["score"]) for item in sub_scores.values())
+    return total_score, sub_scores, visualization
+
+
 def _spot_diameter_in_px(params: dict[str, Any], spot_um_to_px: float) -> float:
     spot_px = params.get("spot_size_px")
     if spot_px is not None:
@@ -445,15 +784,12 @@ def evaluate(
         config_data = _load_json(config_json_path)
 
         scoring_policy = config_data.get("scoring_policy", {})
-        param_tol = scoring_policy.get("param_tolerance_tau", {})
         spacing_th = scoring_policy.get("spacing_thresholds", {})
         penalty_rules = scoring_policy.get("penalty_rules", {})
         area_rebuild = scoring_policy.get("player_area_rebuild", {})
+        param_tolerance_abs = scoring_policy.get("param_tolerance_abs", {})
+        field_generation = scoring_policy.get("spatial_parameter_field", {})
 
-        tau_power = float(param_tol.get("power", 0.20))
-        tau_spot = float(param_tol.get("spot_size", 0.15))
-        tau_time = float(param_tol.get("exposure_time", 0.25))
-        tau_wave = float(param_tol.get("wavelength", 0.10))
         sigma_good_sq = float(spacing_th.get("sigma_good_sq", 25.0))
         sigma_max_sq = float(spacing_th.get("sigma_max_sq", 100.0))
         r_excellent = float(spacing_th.get("r_value_excellent", 1.2))
@@ -461,6 +797,12 @@ def evaluate(
         points_per_overlap = float(penalty_rules.get("points_per_overlap", 1.0))
         spot_um_to_px = float(penalty_rules.get("spot_size_um_to_px", 0.03))
         overlap_ratio = float(penalty_rules.get("overlap_distance_ratio", 1.0))
+        field_sigma_px = float(field_generation.get("field_sigma_px", 25.0))
+        dim2_tolerance_abs = {
+            "power": float(param_tolerance_abs.get("power", 25.0)),
+            "spot_size": float(param_tolerance_abs.get("spot_size", 30.0)),
+            "exposure_time": float(param_tolerance_abs.get("exposure_time", 10.0)),
+        }
 
         raw_ratio_candidates = area_rebuild.get("ratio_candidates", [0.35, 0.30, 0.25, 0.20, 0.15, 0.10])
         if not isinstance(raw_ratio_candidates, list):
@@ -478,12 +820,23 @@ def evaluate(
         if not isinstance(all_shots, list):
             raise ValueError("player.shots 必须是数组")
         valid_shots = [s for s in all_shots if not s.get("is_trial", False)]
+        gt_all_shots = _normalize_shots(question_data)
+        gt_valid_shots = [s for s in gt_all_shots if not s.get("is_trial", False)]
 
         target_zone = question_data.get("target_zone", {})
         target_poly = _safe_polygon(
             target_zone.get("outer_boundary", []),
             target_zone.get("inner_holes", []),
         )
+        if target_poly is None and gt_valid_shots:
+            target_poly = _build_player_treatment_area(
+                valid_shots=gt_valid_shots,
+                ratio_candidates=ratio_candidates,
+                inner_iqr_k=inner_iqr_k,
+                inner_ratio_limit=inner_ratio_limit,
+                inner_abs_limit=inner_abs_limit,
+                min_outer_points=min_outer_points,
+            )
 
         # 3) 危险区检测与附加惩罚统计
         is_fatal_error = False
@@ -538,6 +891,7 @@ def evaluate(
         # 4) 维度一：位置与范围（IoU）
         iou = 0.0
         dim1_score = 0.0
+        player_area = None
         if target_poly is not None and len(valid_shots) >= 1:
             player_area = _build_player_treatment_area(
                 valid_shots=valid_shots,
@@ -563,27 +917,21 @@ def evaluate(
             dim1_score = 0.0
             dim1_eval_msg = "覆盖不足，存在明显漏打或偏离靶区。"
 
-        # 5) 维度二：强度与能量
-        gt = question_data.get("gt_parameters", {})
-        gt_power = float(gt.get("power", 200.0))
-        gt_spot = float(gt.get("spot_size", 200.0))
-        gt_time = float(gt.get("exposure_time", 100.0))
-        gt_wave = float(gt.get("wavelength", 532.0))
+        base_image_path = _resolve_base_image_path(question_json_path, question_data)
+        heatmap_base_image_path = _resolve_player_image_path(player_json_path) or base_image_path
 
-        if valid_shots:
-            avg_power = float(np.mean([float(s.get("params", {}).get("power", 0.0)) for s in valid_shots]))
-            avg_spot = float(np.mean([float(s.get("params", {}).get("spot_size", 0.0)) for s in valid_shots]))
-            avg_time = float(np.mean([float(s.get("params", {}).get("exposure_time", 0.0)) for s in valid_shots]))
-            avg_wave = float(np.mean([float(s.get("params", {}).get("wavelength", 0.0)) for s in valid_shots]))
-        else:
-            avg_power, avg_spot, avg_time, avg_wave = 0.0, 0.0, 0.0, 0.0
-
-        s_power, e_power = _param_score(avg_power, gt_power, tau_power, 11.0)
-        s_spot, e_spot = _param_score(avg_spot, gt_spot, tau_spot, 8.0)
-        s_time, e_time = _param_score(avg_time, gt_time, tau_time, 8.0)
-        s_wave, e_wave = _param_score(avg_wave, gt_wave, tau_wave, 8.0)
-        dim2_score = s_power + s_spot + s_time + s_wave
-        dim2_eval_msg = "已完成参数偏差计算，可根据子项进行针对性训练。"
+        # 5) 维度二：激光参数空间适配度
+        scoring_region = target_poly.intersection(player_area) if target_poly is not None and player_area is not None else None
+        dim2_score, dim2_sub_scores, dim2_visualization = _score_spatial_parameters(
+            gt_shots=gt_valid_shots,
+            player_shots=valid_shots,
+            scoring_geom=scoring_region,
+            base_image_path=heatmap_base_image_path,
+            output_json_path=scoring_output_json_path,
+            tolerance_abs=dim2_tolerance_abs,
+            field_sigma_px=field_sigma_px,
+        )
+        dim2_eval_msg = "已完成 GT 与玩家参数空间场对比，可结合热力图定位局部参数偏差。"
 
         # 6) 维度三：密度与均匀度
         r_value = 0.0
@@ -636,23 +984,10 @@ def evaluate(
         if is_fatal_error:
             total_score = 0.0
 
-        base_image_path = _resolve_base_image_path(question_json_path, question_data)
-        player_area_for_vis = (
-            _build_player_treatment_area(
-                valid_shots=valid_shots,
-                ratio_candidates=ratio_candidates,
-                inner_iqr_k=inner_iqr_k,
-                inner_ratio_limit=inner_ratio_limit,
-                inner_abs_limit=inner_abs_limit,
-                min_outer_points=min_outer_points,
-            )
-            if valid_shots
-            else None
-        )
         vis_paths = _save_overlay_visualization(
             base_image_path=base_image_path,
             target_poly=target_poly,
-            player_area=player_area_for_vis,
+            player_area=player_area,
             valid_shots=valid_shots,
             output_json_path=scoring_output_json_path,
         )
@@ -681,38 +1016,12 @@ def evaluate(
                     "eval_msg": dim1_eval_msg,
                 },
                 "dim2_energy": {
+                    "name": "激光参数空间适配度",
                     "score": round(dim2_score, 2),
                     "max_score": 35.0,
-                    "sub_scores": {
-                        "power": {
-                            "score": round(s_power, 2),
-                            "max_score": 11.0,
-                            "player_avg": round(avg_power, 2),
-                            "gt": gt_power,
-                            "deviation_ratio": round(e_power, 4),
-                        },
-                        "spot_size": {
-                            "score": round(s_spot, 2),
-                            "max_score": 8.0,
-                            "player_avg": round(avg_spot, 2),
-                            "gt": gt_spot,
-                            "deviation_ratio": round(e_spot, 4),
-                        },
-                        "exposure_time": {
-                            "score": round(s_time, 2),
-                            "max_score": 8.0,
-                            "player_avg": round(avg_time, 2),
-                            "gt": gt_time,
-                            "deviation_ratio": round(e_time, 4),
-                        },
-                        "wavelength": {
-                            "score": round(s_wave, 2),
-                            "max_score": 8.0,
-                            "player_avg": round(avg_wave, 2),
-                            "gt": gt_wave,
-                            "deviation_ratio": round(e_wave, 4),
-                        },
-                    },
+                    "scoring_region": "intersection_of_target_and_player_area",
+                    "sub_scores": dim2_sub_scores,
+                    "visualization": dim2_visualization,
                     "eval_msg": dim2_eval_msg,
                 },
                 "dim3_density": {
