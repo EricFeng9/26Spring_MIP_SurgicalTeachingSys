@@ -1,0 +1,1154 @@
+{
+    "session_id": "SESS_20260428_213123",
+    "task_id": "T001_RP_Standard",
+    "player_info": {
+        "id": "ST_001",
+        "name": "Operator"
+    },
+    "shots": [
+        {
+            "id": 1,
+            "pos": [
+                1023.0,
+                809.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 2,
+            "pos": [
+                1450.0,
+                1176.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 3,
+            "pos": [
+                1450.0,
+                1293.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 4,
+            "pos": [
+                1574.0,
+                1293.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 5,
+            "pos": [
+                1574.0,
+                1159.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 6,
+            "pos": [
+                1505.0,
+                1202.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 7,
+            "pos": [
+                1505.0,
+                1248.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 8,
+            "pos": [
+                1505.0,
+                1323.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 9,
+            "pos": [
+                1505.0,
+                1377.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 10,
+            "pos": [
+                1505.0,
+                1430.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 11,
+            "pos": [
+                1505.0,
+                1474.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 12,
+            "pos": [
+                1505.0,
+                1522.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 13,
+            "pos": [
+                1505.0,
+                1570.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 14,
+            "pos": [
+                1505.0,
+                1603.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 15,
+            "pos": [
+                1460.0,
+                1599.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 16,
+            "pos": [
+                1460.0,
+                1552.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 17,
+            "pos": [
+                1460.0,
+                1503.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 18,
+            "pos": [
+                1460.0,
+                1453.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 19,
+            "pos": [
+                1460.0,
+                1398.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 20,
+            "pos": [
+                1460.0,
+                1349.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 21,
+            "pos": [
+                1460.0,
+                1294.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 22,
+            "pos": [
+                1460.0,
+                1243.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 23,
+            "pos": [
+                1460.0,
+                1193.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 24,
+            "pos": [
+                1460.0,
+                1144.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 25,
+            "pos": [
+                1460.0,
+                1096.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 26,
+            "pos": [
+                1460.0,
+                1052.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 27,
+            "pos": [
+                1460.0,
+                1001.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 28,
+            "pos": [
+                1460.0,
+                956.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 29,
+            "pos": [
+                1460.0,
+                907.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 30,
+            "pos": [
+                1460.0,
+                860.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 31,
+            "pos": [
+                1460.0,
+                810.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 32,
+            "pos": [
+                1460.0,
+                762.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 33,
+            "pos": [
+                1460.0,
+                715.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 34,
+            "pos": [
+                1460.0,
+                669.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 35,
+            "pos": [
+                1460.0,
+                621.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 36,
+            "pos": [
+                1460.0,
+                571.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 37,
+            "pos": [
+                1460.0,
+                524.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 38,
+            "pos": [
+                1460.0,
+                473.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 39,
+            "pos": [
+                1548.0,
+                467.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 40,
+            "pos": [
+                1548.0,
+                514.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 41,
+            "pos": [
+                1548.0,
+                563.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 42,
+            "pos": [
+                1548.0,
+                611.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 43,
+            "pos": [
+                1548.0,
+                660.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 44,
+            "pos": [
+                1548.0,
+                708.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 45,
+            "pos": [
+                1548.0,
+                750.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 46,
+            "pos": [
+                1548.0,
+                798.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 47,
+            "pos": [
+                1548.0,
+                905.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 48,
+            "pos": [
+                1548.0,
+                951.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 49,
+            "pos": [
+                1548.0,
+                1000.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 50,
+            "pos": [
+                1548.0,
+                1050.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 51,
+            "pos": [
+                1548.0,
+                1089.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        },
+        {
+            "id": 52,
+            "pos": [
+                1548.0,
+                1134.0
+            ],
+            "is_trial": false,
+            "spot_grade": 3,
+            "params": {
+                "power": 180.0,
+                "spot_size_set": 200.0,
+                "exposure_time": 200.0,
+                "wavelength": 532.0,
+                "mode": "Single",
+                "matrix_shape": "Square",
+                "matrix_shape_param": 5,
+                "matrix_spacing_x_spot": 1.0,
+                "matrix_rotation_deg": 0.0,
+                "matrix_offset_dx": 0.0,
+                "matrix_offset_dy": 0.0
+            }
+        }
+    ]
+}

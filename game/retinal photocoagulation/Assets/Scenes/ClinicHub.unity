@@ -4831,7 +4831,7 @@ MonoBehaviour:
   snapPoint: {fileID: 0}
   forceFacingOnSnap: 0
   snapFacingRight: 1
-  targetSceneName: MainSurgery
+  targetSceneName: final_surgery
   sceneTransition: {fileID: 1675638925}
   onInteractionStart:
     m_PersistentCalls:

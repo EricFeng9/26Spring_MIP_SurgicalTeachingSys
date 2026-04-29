@@ -1402,7 +1402,7 @@ public class LaserTreatmentController : MonoBehaviour
             statusText.text = result.message;
 
         yield return null;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneManager.LoadScene("ClinicHub");
     }
 
     private BlurRegion BuildBlurRegionForShot(Vector2Int point, LaserShotMetrics metrics)

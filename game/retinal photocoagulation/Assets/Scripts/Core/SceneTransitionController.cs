@@ -14,10 +14,19 @@ namespace RetinalPrototype
         [SerializeField] private float fadeInSeconds = 0.25f;
         [SerializeField] private bool dontDestroyOnLoad = true;
 
+        private static SceneTransitionController _instance;
         private bool _isTransitioning;
 
         private void Awake()
         {
+            if (_instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            _instance = this;
+
             if (dontDestroyOnLoad)
             {
                 DontDestroyOnLoad(gameObject);
