@@ -1,6 +1,8 @@
+import csv
 import json
 import math
 import os
+import re
 import tarfile
 import traceback
 from io import BytesIO
@@ -10,6 +12,7 @@ import numpy as np
 import shapely
 from PIL import Image, ImageDraw
 from shapely.geometry import MultiPoint, Point, Polygon
+from shapely.ops import unary_union
 
 def _load_json(path: str) -> dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
@@ -47,6 +50,7 @@ def _normalize_shots(player_data: dict[str, Any]) -> list[dict[str, Any]]:
                 {
                     "id": item.get("id"),
                     "pos": item.get("pos", [None, None]),
+                    "radius_px": item.get("radius_px"),
                     "is_trial": bool(item.get("is_trial", False)),
                     "params": params,
                 }
@@ -64,6 +68,7 @@ def _normalize_shots(player_data: dict[str, Any]) -> list[dict[str, Any]]:
             {
                 "id": item.get("id"),
                 "pos": item.get("pos", [None, None]),
+                "radius_px": item.get("radius_px"),
                 # actions 中没有 is_trial 时默认按有效光斑处理
                 "is_trial": bool(item.get("is_trial", False)),
                 "params": item.get("params", {}),
@@ -72,8 +77,38 @@ def _normalize_shots(player_data: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized
 
 
+def _scale_shots_to_image_space(
+    shots: list[dict[str, Any]],
+    source_width: float,
+    source_height: float,
+    target_width: float,
+    target_height: float,
+) -> list[dict[str, Any]]:
+    if source_width <= 0 or source_height <= 0:
+        raise ValueError("player_coordinate_space.width/height 必须大于 0")
+    sx = target_width / source_width
+    sy = target_height / source_height
+    radius_scale = (sx + sy) / 2.0
+    scaled = []
+    for shot in shots:
+        new_shot = dict(shot)
+        pos = shot.get("pos", [None, None])
+        if isinstance(pos, list) and len(pos) >= 2:
+            new_shot["pos"] = [float(pos[0]) * sx, float(pos[1]) * sy]
+        if shot.get("radius_px") is not None:
+            new_shot["radius_px"] = float(shot["radius_px"]) * radius_scale
+        scaled.append(new_shot)
+    return scaled
+
+
 def _is_labelme_annotation(data: dict[str, Any]) -> bool:
     return isinstance(data.get("shapes"), list) and "target_zone" not in data
+
+
+def _is_region_labelme_annotation(data: dict[str, Any]) -> bool:
+    if not isinstance(data.get("shapes"), list):
+        return False
+    return any(re.match(r"^\d+_gt_outer$", _shape_label(shape).lower()) for shape in data["shapes"])
 
 
 def _shape_label(shape: dict[str, Any]) -> str:
@@ -98,9 +133,44 @@ def _guess_before_json_path(after_json_path: str) -> str | None:
     for fn in os.listdir(folder):
         if not fn.endswith(".json"):
             continue
-        if "_before_" in fn:
+        stem = os.path.splitext(fn)[0]
+        if "_before_" in fn or stem.endswith("_before"):
             candidates.append(os.path.join(folder, fn))
     return sorted(candidates)[0] if candidates else None
+
+
+def _guess_region_param_csv_path(gt_json_path: str) -> str:
+    csv_path = os.path.splitext(gt_json_path)[0] + ".csv"
+    if not os.path.isfile(csv_path):
+        raise FileNotFoundError(f"区域级 GT 参数 CSV 不存在: {csv_path}")
+    return csv_path
+
+
+def _load_region_param_csv(csv_path: str) -> dict[str, dict[str, float]]:
+    with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        required = {"id", "power", "spot_diameter", "exposure", "wavelength"}
+        missing = required - set(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"区域级 GT 参数 CSV 缺少字段 {sorted(missing)}: {csv_path}")
+
+        params_by_id: dict[str, dict[str, float]] = {}
+        for row in reader:
+            region_id = str(row.get("id", "")).strip()
+            if not region_id:
+                raise ValueError(f"区域级 GT 参数 CSV 存在空 id: {csv_path}")
+            if region_id in params_by_id:
+                raise ValueError(f"区域级 GT 参数 CSV 存在重复 id={region_id}: {csv_path}")
+            params_by_id[region_id] = {
+                "power": float(row["power"]),
+                "spot_size": float(row["spot_diameter"]),
+                "exposure_time": float(row["exposure"]),
+                "wavelength": float(row["wavelength"]),
+            }
+
+    if not params_by_id:
+        raise ValueError(f"区域级 GT 参数 CSV 没有有效区域参数: {csv_path}")
+    return params_by_id
 
 
 def _guess_vessel_mask_tar_path(after_json_path: str) -> str | None:
@@ -187,6 +257,92 @@ def _convert_labelme_to_question(question_json_path: str, question_data: dict[st
     return converted, vessel_mask
 
 
+def _load_danger_zones_from_before_json(question_json_path: str) -> list[dict[str, Any]]:
+    danger_zones: list[dict[str, Any]] = []
+    before_json_path = _guess_before_json_path(question_json_path)
+    if not before_json_path:
+        return danger_zones
+
+    before_data = _load_json(before_json_path)
+    for shape in before_data.get("shapes", []):
+        label = _shape_label(shape).lower()
+        if label in {"optic", "macula", "macular", "fovea"}:
+            points = _shape_points(shape)
+            if len(points) >= 3:
+                danger_zones.append({"id": label, "polygon": points})
+    return danger_zones
+
+
+def _convert_region_labelme_to_question(question_json_path: str, question_data: dict[str, Any]) -> tuple[dict[str, Any], np.ndarray | None]:
+    shapes = question_data.get("shapes", [])
+    if not isinstance(shapes, list):
+        raise ValueError("区域级 LabelMe question 的 shapes 字段缺失或格式错误")
+
+    csv_path = _guess_region_param_csv_path(question_json_path)
+    params_by_id = _load_region_param_csv(csv_path)
+    grouped: dict[str, dict[str, Any]] = {}
+
+    for shape in shapes:
+        label = _shape_label(shape).lower()
+        points = _shape_points(shape)
+        if not points:
+            continue
+
+        outer_match = re.match(r"^(\d+)_gt_outer$", label)
+        inner_match = re.match(r"^(\d+)_gt_inner_(\d+)$", label)
+        if outer_match:
+            region_id = outer_match.group(1)
+            region = grouped.setdefault(region_id, {"outer_boundary": None, "inner_holes": []})
+            if region["outer_boundary"] is not None:
+                raise ValueError(f"区域 {region_id} 存在多个 gt_outer")
+            region["outer_boundary"] = points
+        elif inner_match:
+            region_id = inner_match.group(1)
+            region = grouped.setdefault(region_id, {"outer_boundary": None, "inner_holes": []})
+            region["inner_holes"].append(points)
+
+    if not grouped:
+        raise ValueError("区域级 LabelMe question 中未找到任何 [区域编号]_gt_outer")
+
+    missing_csv_ids = sorted(set(grouped.keys()) - set(params_by_id.keys()))
+    if missing_csv_ids:
+        raise ValueError(f"区域级 GT 参数 CSV 缺少区域 id: {missing_csv_ids}")
+    unused_csv_ids = sorted(set(params_by_id.keys()) - set(grouped.keys()))
+    if unused_csv_ids:
+        raise ValueError(f"区域级 GT 参数 CSV 存在 JSON 中未标注的区域 id: {unused_csv_ids}")
+
+    gt_regions = []
+    for region_id in sorted(grouped.keys(), key=lambda x: int(x)):
+        region = grouped[region_id]
+        outer = region["outer_boundary"]
+        if not outer or len(outer) < 3:
+            raise ValueError(f"区域 {region_id} 缺少有效 gt_outer")
+        polygon = _safe_polygon(outer, region["inner_holes"])
+        if polygon is None:
+            raise ValueError(f"区域 {region_id} 多边形无效")
+        gt_regions.append(
+            {
+                "region_id": region_id,
+                "outer_boundary": outer,
+                "inner_holes": region["inner_holes"],
+                "params": params_by_id[region_id],
+            }
+        )
+
+    vessel_mask = None
+    tar_path = _guess_vessel_mask_tar_path(question_json_path)
+    if tar_path:
+        vessel_mask = _load_vessel_mask_from_tar(tar_path)
+
+    converted = {
+        "task_id": "",
+        "danger_zones": _load_danger_zones_from_before_json(question_json_path),
+        "gt_parameters": {},
+        "gt_parameter_regions": gt_regions,
+    }
+    return converted, vessel_mask
+
+
 def _count_holes(geom) -> int:
     if geom is None:
         return 0
@@ -219,66 +375,28 @@ def _best_concave_hull(points: list[tuple[float, float]], prefer_hole: bool, rat
 
 def _build_player_treatment_area(
     valid_shots: list[dict[str, Any]],
-    ratio_candidates: list[float],
-    inner_iqr_k: float,
-    inner_ratio_limit: float,
-    inner_abs_limit: int,
-    min_outer_points: int,
 ):
-    """
-    基于玩家打点中心重建覆盖区域（Concave Hull, allow_holes=True）。
-    修复点：
-    1) 保持原 Concave Hull 主流程；
-    2) 当检测到“疑似环形 + 少量内侧离群点”时，先剔除这些内侧点再重建，
-       减少桥接长边把环形孔洞填死的问题。
-    """
-    points = []
+    """用每个有效光斑的 radius_px 构建玩家实际治疗区域；当前按半径解释。"""
+    disks = []
     for shot in valid_shots:
         pos = shot.get("pos", [None, None])
         if not isinstance(pos, list) or len(pos) < 2:
             continue
-        points.append((float(pos[0]), float(pos[1])))
+        if shot.get("radius_px") is None:
+            raise ValueError(f"有效光斑缺少 radius_px: id={shot.get('id')}")
+        radius_px = float(shot["radius_px"])
+        if radius_px <= 0:
+            raise ValueError(f"有效光斑 radius_px 必须大于 0: id={shot.get('id')}")
+        disks.append(Point(float(pos[0]), float(pos[1])).buffer(radius_px, resolution=24))
 
-    if not points:
+    if not disks:
         return None
-    if len(points) == 1:
-        return Point(points[0]).buffer(1.0)
-    if len(points) == 2:
-        return MultiPoint(points).convex_hull.buffer(1.0)
-
-    # 先尝试全量点重建
-    base_area = _best_concave_hull(points, prefer_hole=False, ratio_candidates=ratio_candidates)
-
-    # 识别“少量内侧离群点”场景：这类点会把环形凹包桥接成实心
-    arr = np.array(points, dtype=float)
-    center = np.mean(arr, axis=0)
-    radii = np.linalg.norm(arr - center, axis=1)
-    q25 = float(np.percentile(radii, 25))
-    q75 = float(np.percentile(radii, 75))
-    iqr = max(q75 - q25, 1e-6)
-    # 内点过滤阈值：k 越大过滤越弱
-    inner_cut = q25 - inner_iqr_k * iqr
-    inner_mask = radii < inner_cut
-    inner_count = int(np.sum(inner_mask))
-    n = len(points)
-    # 仅当内点占比较低时触发过滤，避免过度修剪
-    likely_ring_with_inner_outliers = (
-        0 < inner_count <= max(inner_abs_limit, int(inner_ratio_limit * n))
-        and (n - inner_count) >= min_outer_points
-    )
-
-    if likely_ring_with_inner_outliers:
-        outer_points = [pt for idx, pt in enumerate(points) if not inner_mask[idx]]
-        repaired_area = _best_concave_hull(outer_points, prefer_hole=True, ratio_candidates=ratio_candidates)
-        if repaired_area is not None and _count_holes(repaired_area) >= 1:
-            return repaired_area
-
-    if base_area is not None:
-        return base_area
-
-    # 兜底为凸包，确保评分流程不中断
-    fallback = MultiPoint(points).convex_hull
-    return fallback if fallback.is_valid and fallback.area > 0 else None
+    area = unary_union(disks)
+    if not area.is_valid:
+        raise ValueError("玩家光斑圆盘包络生成了无效几何")
+    if area.area <= 0:
+        raise ValueError("玩家光斑圆盘包络面积为 0")
+    return area
 
 
 def _resolve_base_image_path(question_json_path: str, question_data: dict[str, Any]) -> str | None:
@@ -315,6 +433,15 @@ def _resolve_player_image_path(player_json_path: str) -> str | None:
     sibling_png = os.path.splitext(player_json_path)[0] + ".png"
     if os.path.exists(sibling_png):
         return sibling_png
+    return None
+
+
+def _resolve_before_image_path(question_json_path: str) -> str | None:
+    stem = os.path.splitext(question_json_path)[0]
+    if stem.endswith("_after"):
+        before_png = stem[: -len("_after")] + "_before.png"
+        if os.path.exists(before_png):
+            return before_png
     return None
 
 
@@ -376,13 +503,15 @@ def _draw_gt_layer(draw: ImageDraw.ImageDraw, target_poly) -> None:
 
 
 def _save_overlay_visualization(
-    base_image_path: str | None,
+    gt_base_image_path: str | None,
+    player_base_image_path: str | None,
+    combined_base_image_path: str | None,
     target_poly,
     player_area,
     valid_shots: list[dict[str, Any]],
     output_json_path: str,
 ) -> dict[str, str]:
-    if not base_image_path or not os.path.exists(base_image_path):
+    if not any(path and os.path.exists(path) for path in (gt_base_image_path, player_base_image_path, combined_base_image_path)):
         return {}
     if target_poly is None and player_area is None:
         return {}
@@ -394,35 +523,57 @@ def _save_overlay_visualization(
         "combined": stem + "_combined_overlay.png",
     }
 
-    base_img = Image.open(base_image_path).convert("RGBA")
+    default_base = gt_base_image_path or combined_base_image_path or player_base_image_path
+    with Image.open(default_base) as coord_img:
+        coordinate_image_size = coord_img.size
+
+    def save_layer(base_path: str | None, draw_layer, output_path: str) -> None:
+        base_img = Image.open(base_path or default_base).convert("RGBA")
+        overlay = Image.new("RGBA", coordinate_image_size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay, "RGBA")
+        draw_layer(draw)
+        if overlay.size != base_img.size:
+            overlay = overlay.resize(base_img.size, Image.Resampling.BILINEAR)
+        Image.alpha_composite(base_img, overlay).save(output_path)
 
     # 1) Player only
-    player_overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
-    player_draw = ImageDraw.Draw(player_overlay, "RGBA")
-    _draw_player_layer(player_draw, player_area, valid_shots)
-    _draw_legend(player_draw, show_player=True, show_gt=False)
-    Image.alpha_composite(base_img, player_overlay).save(output_paths["player_only"])
+    save_layer(
+        player_base_image_path,
+        lambda draw: (
+            _draw_player_layer(draw, player_area, valid_shots),
+            _draw_legend(draw, show_player=True, show_gt=False),
+        ),
+        output_paths["player_only"],
+    )
 
     # 2) GT only
-    gt_overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
-    gt_draw = ImageDraw.Draw(gt_overlay, "RGBA")
-    _draw_gt_layer(gt_draw, target_poly)
-    _draw_legend(gt_draw, show_player=False, show_gt=True)
-    Image.alpha_composite(base_img, gt_overlay).save(output_paths["gt_only"])
+    save_layer(
+        gt_base_image_path,
+        lambda draw: (
+            _draw_gt_layer(draw, target_poly),
+            _draw_legend(draw, show_player=False, show_gt=True),
+        ),
+        output_paths["gt_only"],
+    )
 
     # 3) Combined
-    combined_overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
-    combined_draw = ImageDraw.Draw(combined_overlay, "RGBA")
-    _draw_gt_layer(combined_draw, target_poly)
-    _draw_player_layer(combined_draw, player_area, valid_shots)
-    _draw_legend(combined_draw, show_player=True, show_gt=True)
-    Image.alpha_composite(base_img, combined_overlay).save(output_paths["combined"])
+    save_layer(
+        combined_base_image_path,
+        lambda draw: (
+            _draw_gt_layer(draw, target_poly),
+            _draw_player_layer(draw, player_area, valid_shots),
+            _draw_legend(draw, show_player=True, show_gt=True),
+        ),
+        output_paths["combined"],
+    )
     return output_paths
 
 
 def _param_value(params: dict[str, Any], key: str) -> float:
     if key == "spot_size":
-        return float(params.get("spot_size", params.get("spot_size_set", 0.0)))
+        return float(params.get("spot_size", params.get("spot_size_set", params.get("spot_diameter", 0.0))))
+    if key == "exposure_time":
+        return float(params.get("exposure_time", params.get("exposure", 0.0)))
     return float(params.get(key, 0.0))
 
 
@@ -455,6 +606,48 @@ def _rasterize_geom_crop(geom, bbox: tuple[int, int, int, int]) -> np.ndarray:
             pts = [(float(x) - minx, float(y) - miny) for x, y in hole.coords]
             draw.polygon(pts, fill=0)
     return np.array(mask_img, dtype=np.uint8) > 0
+
+
+def _region_polygon(region: dict[str, Any]) -> Polygon:
+    polygon = _safe_polygon(region.get("outer_boundary", []), region.get("inner_holes", []))
+    if polygon is None:
+        raise ValueError(f"区域 {region.get('region_id', '')} 多边形无效")
+    return polygon
+
+
+def _build_region_target_polygon(regions: list[dict[str, Any]]):
+    polygons = [_region_polygon(region) for region in regions]
+    if not polygons:
+        return None
+    target = unary_union(polygons)
+    if not target.is_valid:
+        target = target.buffer(0)
+    if target.area <= 0:
+        return None
+    return target
+
+
+def _build_region_param_field(
+    regions: list[dict[str, Any]],
+    key: str,
+    bbox: tuple[int, int, int, int],
+    mask: np.ndarray,
+) -> np.ndarray:
+    field = np.full(mask.shape, np.nan, dtype=float)
+    occupied = np.zeros(mask.shape, dtype=bool)
+
+    for region in regions:
+        params = region.get("params", {})
+        if key not in params:
+            raise ValueError(f"区域 {region.get('region_id', '')} 缺少参数: {key}")
+        region_mask = _rasterize_geom_crop(_region_polygon(region), bbox) & mask
+        overlap = occupied & region_mask
+        if np.any(overlap):
+            raise ValueError("区域级 GT 标注存在重叠区域，无法唯一确定 GT 参数场")
+        field[region_mask] = float(params[key])
+        occupied |= region_mask
+
+    return field
 
 
 def _valid_param_shots(shots: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
@@ -567,20 +760,21 @@ def _heat_color(t: float, error_mode: bool) -> tuple[int, int, int, int]:
 
 def _save_field_heatmap(
     base_image_path: str | None,
-    image_size: tuple[int, int],
+    coordinate_image_size: tuple[int, int],
     field: np.ndarray,
     bbox: tuple[int, int, int, int],
     output_path: str,
     vmin: float,
     vmax: float,
     error_mode: bool,
+    crop_padding_px: int,
 ) -> str:
     if base_image_path and os.path.exists(base_image_path):
         base_img = Image.open(base_image_path).convert("RGBA")
     else:
-        base_img = Image.new("RGBA", image_size, (20, 20, 20, 255))
+        base_img = Image.new("RGBA", coordinate_image_size, (20, 20, 20, 255))
 
-    overlay = Image.new("RGBA", base_img.size, (0, 0, 0, 0))
+    overlay = Image.new("RGBA", coordinate_image_size, (0, 0, 0, 0))
     pix = overlay.load()
     minx, miny, _, _ = bbox
     denom = max(vmax - vmin, 1e-9)
@@ -592,7 +786,19 @@ def _save_field_heatmap(
                 continue
             pix[minx + col, miny + row] = _heat_color((float(value) - vmin) / denom, error_mode)
 
+    if overlay.size != base_img.size:
+        overlay = overlay.resize(base_img.size, Image.Resampling.BILINEAR)
     combined = Image.alpha_composite(base_img, overlay)
+    minx, miny, maxx, maxy = bbox
+    scale_x = combined.width / coordinate_image_size[0]
+    scale_y = combined.height / coordinate_image_size[1]
+    crop_box = (
+        max(0, int(math.floor((minx - crop_padding_px) * scale_x))),
+        max(0, int(math.floor((miny - crop_padding_px) * scale_y))),
+        min(combined.width, int(math.ceil((maxx + crop_padding_px + 1) * scale_x))),
+        min(combined.height, int(math.ceil((maxy + crop_padding_px + 1) * scale_y))),
+    )
+    combined = combined.crop(crop_box)
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     combined.save(output_path)
     return output_path
@@ -627,12 +833,17 @@ def _score_param_field(error_field: np.ndarray, max_score: float) -> tuple[float
 
 def _score_spatial_parameters(
     gt_shots: list[dict[str, Any]],
+    gt_regions: list[dict[str, Any]],
     player_shots: list[dict[str, Any]],
     scoring_geom,
-    base_image_path: str | None,
+    gt_base_image_path: str | None,
+    player_base_image_path: str | None,
+    error_base_image_path: str | None,
     output_json_path: str,
     tolerance_abs: dict[str, float],
+    tolerance_ratio: dict[str, float],
     field_sigma_px: float,
+    heatmap_crop_padding_px: int,
 ) -> tuple[float, dict[str, Any], dict[str, str]]:
     if scoring_geom is None or scoring_geom.area <= 0:
         empty_subscores = {}
@@ -645,7 +856,7 @@ def _score_spatial_parameters(
             }
         return 0.0, empty_subscores, {}
 
-    image_size = _image_size_from_context(base_image_path, [scoring_geom])
+    image_size = _image_size_from_context(gt_base_image_path or player_base_image_path, [scoring_geom])
     width, height = image_size
     minx, miny, maxx, maxy = scoring_geom.bounds
     bbox = (
@@ -667,12 +878,20 @@ def _score_spatial_parameters(
     }
 
     for key, (field_key, max_score, cn_label) in param_specs.items():
-        gt_field = _build_continuous_param_field(gt_shots, field_key, bbox, mask, field_sigma_px)
+        if gt_regions:
+            gt_field = _build_region_param_field(gt_regions, field_key, bbox, mask)
+        else:
+            gt_field = _build_continuous_param_field(gt_shots, field_key, bbox, mask, field_sigma_px)
         player_field = _build_continuous_param_field(player_shots, field_key, bbox, mask, field_sigma_px)
         valid = mask & ~np.isnan(gt_field) & ~np.isnan(player_field)
         error = np.full(mask.shape, np.nan, dtype=float)
-        tol = max(float(tolerance_abs.get(key, 1.0)), 1e-6)
-        error[valid] = np.minimum(1.0, np.abs(player_field[valid] - gt_field[valid]) / tol)
+        if gt_regions:
+            ratio = max(float(tolerance_ratio.get(key, 0.25)), 1e-6)
+            tol_field = np.maximum(np.abs(gt_field) * ratio, 1e-6)
+            error[valid] = np.minimum(1.0, np.abs(player_field[valid] - gt_field[valid]) / tol_field[valid])
+        else:
+            tol = max(float(tolerance_abs.get(key, 1.0)), 1e-6)
+            error[valid] = np.minimum(1.0, np.abs(player_field[valid] - gt_field[valid]) / tol)
         score, mean_error = _score_param_field(error, max_score)
 
         field_pairs[key] = (gt_field, player_field)
@@ -684,7 +903,10 @@ def _score_spatial_parameters(
             "main_error_regions": _main_error_regions(error, bbox, cn_label),
         }
 
-    gt_wave = _build_nearest_param_field(gt_shots, "wavelength", bbox, mask)
+    if gt_regions:
+        gt_wave = _build_region_param_field(gt_regions, "wavelength", bbox, mask)
+    else:
+        gt_wave = _build_nearest_param_field(gt_shots, "wavelength", bbox, mask)
     player_wave = _build_nearest_param_field(player_shots, "wavelength", bbox, mask)
     wave_valid = mask & ~np.isnan(gt_wave) & ~np.isnan(player_wave)
     wave_error = np.full(mask.shape, np.nan, dtype=float)
@@ -728,17 +950,17 @@ def _score_spatial_parameters(
             if raw_min == raw_max:
                 raw_max = raw_min + 1.0
         visualization[gt_name] = _save_field_heatmap(
-            base_image_path, image_size, gt_field, bbox, os.path.join(heatmap_dir, f"{gt_name}.png"), raw_min, raw_max, False
+            gt_base_image_path, image_size, gt_field, bbox, os.path.join(heatmap_dir, f"{gt_name}.png"), raw_min, raw_max, False, heatmap_crop_padding_px
         )
         visualization[player_name] = _save_field_heatmap(
-            base_image_path, image_size, player_field, bbox, os.path.join(heatmap_dir, f"{player_name}.png"), raw_min, raw_max, False
+            player_base_image_path, image_size, player_field, bbox, os.path.join(heatmap_dir, f"{player_name}.png"), raw_min, raw_max, False, heatmap_crop_padding_px
         )
         visualization[error_name] = _save_field_heatmap(
-            base_image_path, image_size, error_fields[key], bbox, os.path.join(heatmap_dir, f"{error_name}.png"), 0.0, 1.0, True
+            error_base_image_path, image_size, error_fields[key], bbox, os.path.join(heatmap_dir, f"{error_name}.png"), 0.0, 1.0, True, heatmap_crop_padding_px
         )
 
     visualization["total_error_heatmap"] = _save_field_heatmap(
-        base_image_path,
+        error_base_image_path,
         image_size,
         total_error,
         bbox,
@@ -746,6 +968,7 @@ def _score_spatial_parameters(
         0.0,
         1.0,
         True,
+        heatmap_crop_padding_px,
     )
 
     total_score = sum(float(item["score"]) for item in sub_scores.values())
@@ -764,11 +987,21 @@ def _spot_diameter_in_px(params: dict[str, Any], spot_um_to_px: float) -> float:
     return spot * spot_um_to_px if spot > 50.0 else spot
 
 
+def _shot_radius_px(shot: dict[str, Any]) -> float:
+    if shot.get("radius_px") is None:
+        raise ValueError(f"光斑缺少 radius_px: id={shot.get('id')}")
+    radius_px = float(shot["radius_px"])
+    if radius_px <= 0:
+        raise ValueError(f"光斑 radius_px 必须大于 0: id={shot.get('id')}")
+    return radius_px
+
+
 def evaluate(
     question_json_path: str,
     player_json_path: str,
     scoring_output_json_path: str,
     config_json_path: str | None = None,
+    param_tolerance_ratio: dict[str, float] | None = None,
 ) -> tuple[int, str]:
     """供游戏调用的统一评估入口。"""
     try:
@@ -777,7 +1010,10 @@ def evaluate(
         player_data = _load_json(player_json_path)
         vessel_mask = None
         if _is_labelme_annotation(question_data):
-            question_data, vessel_mask = _convert_labelme_to_question(question_json_path, question_data)
+            if _is_region_labelme_annotation(question_data):
+                question_data, vessel_mask = _convert_region_labelme_to_question(question_json_path, question_data)
+            else:
+                question_data, vessel_mask = _convert_labelme_to_question(question_json_path, question_data)
 
         if not config_json_path:
             config_json_path = os.path.join(os.path.dirname(question_json_path), "config.json")
@@ -788,7 +1024,9 @@ def evaluate(
         penalty_rules = scoring_policy.get("penalty_rules", {})
         area_rebuild = scoring_policy.get("player_area_rebuild", {})
         param_tolerance_abs = scoring_policy.get("param_tolerance_abs", {})
+        config_tolerance_ratio = scoring_policy.get("param_tolerance_ratio", {})
         field_generation = scoring_policy.get("spatial_parameter_field", {})
+        player_coordinate_space = scoring_policy.get("player_coordinate_space", {})
 
         sigma_good_sq = float(spacing_th.get("sigma_good_sq", 25.0))
         sigma_max_sq = float(spacing_th.get("sigma_max_sq", 100.0))
@@ -798,44 +1036,60 @@ def evaluate(
         spot_um_to_px = float(penalty_rules.get("spot_size_um_to_px", 0.03))
         overlap_ratio = float(penalty_rules.get("overlap_distance_ratio", 1.0))
         field_sigma_px = float(field_generation.get("field_sigma_px", 25.0))
+        heatmap_crop_padding_px = int(field_generation.get("heatmap_crop_padding_px", 40))
         dim2_tolerance_abs = {
             "power": float(param_tolerance_abs.get("power", 25.0)),
             "spot_size": float(param_tolerance_abs.get("spot_size", 30.0)),
             "exposure_time": float(param_tolerance_abs.get("exposure_time", 10.0)),
         }
+        dim2_tolerance_ratio = {
+            "power": float(config_tolerance_ratio.get("power", 0.25)),
+            "spot_size": float(config_tolerance_ratio.get("spot_size", 0.25)),
+            "exposure_time": float(config_tolerance_ratio.get("exposure_time", 0.25)),
+        }
+        if param_tolerance_ratio is not None:
+            for key in ("power", "spot_size", "exposure_time"):
+                if key in param_tolerance_ratio:
+                    dim2_tolerance_ratio[key] = float(param_tolerance_ratio[key])
 
-        raw_ratio_candidates = area_rebuild.get("ratio_candidates", [0.35, 0.30, 0.25, 0.20, 0.15, 0.10])
-        if not isinstance(raw_ratio_candidates, list):
-            raise ValueError("player_area_rebuild.ratio_candidates 必须是数组")
-        ratio_candidates = [float(v) for v in raw_ratio_candidates if 0.0 < float(v) <= 1.0]
-        if not ratio_candidates:
-            raise ValueError("player_area_rebuild.ratio_candidates 不能为空，且元素需在 (0, 1] 范围")
-        inner_iqr_k = float(area_rebuild.get("inner_iqr_k", 0.75))
-        inner_ratio_limit = float(area_rebuild.get("inner_ratio_limit", 0.20))
-        inner_abs_limit = int(area_rebuild.get("inner_abs_limit", 3))
-        min_outer_points = int(area_rebuild.get("min_outer_points", 8))
+        base_image_path = _resolve_base_image_path(question_json_path, question_data)
+        if base_image_path and os.path.exists(base_image_path):
+            with Image.open(base_image_path) as base_img_for_size:
+                base_image_size = base_img_for_size.size
+        else:
+            base_image_size = None
 
         # 2) 基础数据抽取
         all_shots = _normalize_shots(player_data)
         if not isinstance(all_shots, list):
             raise ValueError("player.shots 必须是数组")
+        if player_coordinate_space:
+            if base_image_size is None:
+                raise ValueError("配置了 player_coordinate_space，但无法确定 GT 原图尺寸")
+            all_shots = _scale_shots_to_image_space(
+                shots=all_shots,
+                source_width=float(player_coordinate_space["width"]),
+                source_height=float(player_coordinate_space["height"]),
+                target_width=float(base_image_size[0]),
+                target_height=float(base_image_size[1]),
+            )
         valid_shots = [s for s in all_shots if not s.get("is_trial", False)]
         gt_all_shots = _normalize_shots(question_data)
         gt_valid_shots = [s for s in gt_all_shots if not s.get("is_trial", False)]
+        gt_param_regions = question_data.get("gt_parameter_regions", [])
+        if not isinstance(gt_param_regions, list):
+            raise ValueError("gt_parameter_regions 必须是数组")
 
+        target_poly = _build_region_target_polygon(gt_param_regions) if gt_param_regions else None
         target_zone = question_data.get("target_zone", {})
-        target_poly = _safe_polygon(
-            target_zone.get("outer_boundary", []),
-            target_zone.get("inner_holes", []),
-        )
+        if target_poly is None:
+            target_poly = _safe_polygon(
+                target_zone.get("outer_boundary", []),
+                target_zone.get("inner_holes", []),
+            )
         if target_poly is None and gt_valid_shots:
             target_poly = _build_player_treatment_area(
                 valid_shots=gt_valid_shots,
-                ratio_candidates=ratio_candidates,
-                inner_iqr_k=inner_iqr_k,
-                inner_ratio_limit=inner_ratio_limit,
-                inner_abs_limit=inner_abs_limit,
-                min_outer_points=min_outer_points,
             )
 
         # 3) 危险区检测与附加惩罚统计
@@ -875,17 +1129,15 @@ def evaluate(
             if _point_hits_mask(vessel_mask, float(pos[0]), float(pos[1])):
                 vessel_hit_count += 1
 
-            # 重叠按光斑中心距离是否小于平均直径统计
-            shot_params = shot.get("params", {})
-            d1_px = _spot_diameter_in_px(shot_params, spot_um_to_px)
+            r1_px = _shot_radius_px(shot)
             for j in range(i + 1, len(all_shots)):
                 shot2 = all_shots[j]
                 pos2 = shot2.get("pos", [None, None])
                 if not isinstance(pos2, list) or len(pos2) < 2:
                     continue
-                d2_px = _spot_diameter_in_px(shot2.get("params", {}), spot_um_to_px)
+                r2_px = _shot_radius_px(shot2)
                 dist = float(np.linalg.norm(np.array(pos, dtype=float) - np.array(pos2, dtype=float)))
-                if dist < ((d1_px + d2_px) / 2.0) * overlap_ratio:
+                if dist < (r1_px + r2_px) * overlap_ratio:
                     overlap_count += 1
 
         # 4) 维度一：位置与范围（IoU）
@@ -895,11 +1147,6 @@ def evaluate(
         if target_poly is not None and len(valid_shots) >= 1:
             player_area = _build_player_treatment_area(
                 valid_shots=valid_shots,
-                ratio_candidates=ratio_candidates,
-                inner_iqr_k=inner_iqr_k,
-                inner_ratio_limit=inner_ratio_limit,
-                inner_abs_limit=inner_abs_limit,
-                min_outer_points=min_outer_points,
             )
             if player_area is not None:
                 inter_area = player_area.intersection(target_poly).area
@@ -917,19 +1164,31 @@ def evaluate(
             dim1_score = 0.0
             dim1_eval_msg = "覆盖不足，存在明显漏打或偏离靶区。"
 
-        base_image_path = _resolve_base_image_path(question_json_path, question_data)
-        heatmap_base_image_path = _resolve_player_image_path(player_json_path) or base_image_path
+        gt_heatmap_base_image_path = base_image_path
+        player_heatmap_base_image_path = _resolve_player_image_path(player_json_path)
+        error_heatmap_base_image_path = _resolve_before_image_path(question_json_path)
+        if gt_heatmap_base_image_path is None:
+            raise FileNotFoundError("GT/after 底图不存在")
+        if player_heatmap_base_image_path is None:
+            raise FileNotFoundError("玩家/player 底图不存在")
+        if error_heatmap_base_image_path is None:
+            raise FileNotFoundError("误差/before 底图不存在")
 
         # 5) 维度二：激光参数空间适配度
         scoring_region = target_poly.intersection(player_area) if target_poly is not None and player_area is not None else None
         dim2_score, dim2_sub_scores, dim2_visualization = _score_spatial_parameters(
             gt_shots=gt_valid_shots,
+            gt_regions=gt_param_regions,
             player_shots=valid_shots,
             scoring_geom=scoring_region,
-            base_image_path=heatmap_base_image_path,
+            gt_base_image_path=gt_heatmap_base_image_path,
+            player_base_image_path=player_heatmap_base_image_path,
+            error_base_image_path=error_heatmap_base_image_path,
             output_json_path=scoring_output_json_path,
             tolerance_abs=dim2_tolerance_abs,
+            tolerance_ratio=dim2_tolerance_ratio,
             field_sigma_px=field_sigma_px,
+            heatmap_crop_padding_px=heatmap_crop_padding_px,
         )
         dim2_eval_msg = "已完成 GT 与玩家参数空间场对比，可结合热力图定位局部参数偏差。"
 
@@ -985,7 +1244,9 @@ def evaluate(
             total_score = 0.0
 
         vis_paths = _save_overlay_visualization(
-            base_image_path=base_image_path,
+            gt_base_image_path=base_image_path,
+            player_base_image_path=player_heatmap_base_image_path,
+            combined_base_image_path=error_heatmap_base_image_path,
             target_poly=target_poly,
             player_area=player_area,
             valid_shots=valid_shots,

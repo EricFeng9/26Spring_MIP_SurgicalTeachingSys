@@ -49,7 +49,8 @@
     },
     "spatial_parameter_field": {
       "field_resolution": "source_image_pixels",
-      "field_sigma_px": 25.0
+      "field_sigma_px": 25.0,
+      "heatmap_crop_padding_px": 40
     }
   }
 }

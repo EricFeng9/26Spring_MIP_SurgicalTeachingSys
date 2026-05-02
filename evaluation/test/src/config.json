@@ -1,0 +1,36 @@
+{
+  "llm": {
+    "base_url": "https://api.example.com/v1",
+    "api_key": "YOUR_API_KEY",
+    "model": "chat-model-name",
+    "temperature": 0.2,
+    "timeout_seconds": 60
+  },
+  "embedding": {
+    "base_url": "https://api.example.com/v1",
+    "api_key": "YOUR_API_KEY",
+    "model": "embedding-model-name",
+    "timeout_seconds": 60
+  },
+  "rag": {
+    "raw_docs_dir": "evaluation/test/rag/raw_docs",
+    "parsed_cache_dir": "evaluation/test/rag/parsed_cache",
+    "chunk_cache_dir": "evaluation/test/rag/chunk_cache",
+    "chroma_db_path": "evaluation/test/rag/chroma_db",
+    "manifest_path": "evaluation/test/rag/rag_manifest.json"
+  },
+  "inputs": {
+    "sample_root": "evaluation/test/sample_data/2604_sampledata/4226701",
+    "case_info_json_path": "evaluation/test/sample_data/2604_sampledata/4226701/4226701_introduction.json",
+    "rubric_md_path": "evaluation/docs/评分细则v4.md",
+    "prompt_path": "evaluation/docs/llm_structured_scoring_report_prompt.txt",
+    "base_scoring_config_path": "evaluation/docs/config.json",
+    "player_coordinate_space": {
+      "width": 2048,
+      "height": 2021
+    }
+  },
+  "outputs": {
+    "base_dir": "evaluation/test/output"
+  }
+}

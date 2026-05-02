@@ -17,7 +17,7 @@ AI 评测模块属于教学复盘层，目标不是重新评分，而是把 `eva
 
 不解决的问题：
 
-- 不重新计算覆盖范围、能量参数、点位均匀性。
+- 不重新计算覆盖范围、激光参数空间适配度、点位均匀性。
 - 不替代 `evaluator.py` 的规则评分。
 - 不让大模型根据主观判断调整分数。
 - 不在第一阶段引入专家案例库。
@@ -288,7 +288,9 @@ RAG 不回答：
 | 视网膜裂孔光凝治疗目标 | 解释为什么要围绕裂孔形成有效封锁 | 覆盖范围不足 |
 | 裂孔周围包绕式光凝原则 | 解释连续封锁带、漏打、边界控制 | 覆盖范围不足、越界 |
 | 黄斑、视盘、大血管危险区 | 解释红线和安全边界 | 医疗事故、血管扣分 |
-| 功率、曝光时间、光斑直径与组织反应 | 解释能量不足或过强的后果 | 能量参数偏差 |
+| 激光参数空间适配度 | 解释 GT 参数空间策略、玩家参数场和局部参数偏差 | 功率/光斑直径/曝光时间/波长空间偏差 |
+| 功率、曝光时间、光斑直径与组织反应 | 解释局部能量过强、过弱、作用范围不匹配的后果 | 参数空间偏差 |
+| 波长选择与组织吸收特性 | 解释局部非推荐波长的临床含义 | 波长空间偏差 |
 | 光斑间距、重叠与局部热量堆积 | 解释扎堆、重叠、间距不稳风险 | 点位均匀性、重叠扣分 |
 
 低优先级内容不进入第一阶段索引：
@@ -313,8 +315,8 @@ RAG 不回答：
   "page_end": 13,
   "title": "视网膜裂孔周围需要形成连续光凝封锁带",
   "disease_tags": ["retinal_tear", "视网膜裂孔"],
-  "score_tags": ["position_coverage", "missed_area"],
-  "keywords": ["裂孔", "包绕式光凝", "封锁带", "漏打", "视网膜脱离"],
+  "score_tags": ["position_coverage", "spatial_parameter_adaptation", "missed_area"],
+  "keywords": ["裂孔", "包绕式光凝", "封锁带", "漏打", "参数空间适配", "视网膜脱离"],
   "source_quote": "原文中与该知识块最相关的一小段摘录",
   "summary": "裂孔周围光凝需要形成连续封锁带，覆盖不足会增加封闭失败和视网膜脱离风险。",
   "text": "视网膜裂孔光凝的关键目标是在裂孔周围形成连续、完整的粘连屏障，减少玻璃体牵拉导致液化玻璃体进入视网膜下的风险。若封锁带不连续或覆盖不足，可能无法有效阻断裂孔进展，增加视网膜脱离风险。"
@@ -374,9 +376,9 @@ RAG 不回答：
 ```json
 {
   "diagnosis": "视网膜裂孔",
-  "lowest_score_item": "覆盖范围 0/35",
+  "lowest_score_item": "激光参数空间适配度 24.03/35",
   "penalties": "光斑重叠 4 次",
-  "query": "视网膜裂孔 覆盖范围不足 包绕式光凝 封锁带 漏打 光斑重叠 局部热量堆积"
+  "query": "视网膜裂孔 激光参数空间适配度 曝光时间偏差 波长偏差 上方左侧 参数热力图 光斑重叠 局部热量堆积"
 }
 ```
 
@@ -390,19 +392,22 @@ RAG 不回答：
 
 ### 5.7 当前样本应命中的知识
 
-当前 `Temp770298_sample_output.json` 的关键事实：
+当前 `Temp770298_sample_v4/score_result.json` 的关键事实：
 
-- 总分：`59.9/100`
-- 覆盖范围：`0/35`
-- 能量参数：`33.9/35`
+- 总分：`85.03/100`
+- 覆盖范围：`35/35`
+- 激光参数空间适配度：`24.03/35`
+- 曝光时间：`4.79/8`，平均误差 `0.4018`，主要偏差区域为 `上方左侧曝光时间偏差较高`
+- 波长：`5.19/8`，平均误差 `0.3516`，主要偏差区域为 `上方左侧波长偏差较高`
 - 点位均匀性：`30/30`
 - 光斑重叠：`4` 次
 - 病例诊断：`视网膜裂孔`
 
 RAG 至少应命中：
 
-- 视网膜裂孔周围需要形成连续封锁带。
-- 覆盖不足会导致裂孔封闭不完整，增加视网膜脱离风险。
+- 激光参数需要与不同治疗区域的专家空间策略匹配。
+- 曝光时间偏长或局部能量偏强会增加热损伤风险。
+- 波长选择应符合组织吸收和治疗目标，局部非推荐波长会影响治疗机制。
 - 光斑重叠会造成局部热量堆积，增加组织损伤风险。
 
 ## 6. 接口设计
@@ -544,61 +549,25 @@ def generate_teaching_feedback_report(
 
 ### 6.4 输出 JSON 结构
 
-前端直接展示的结构如下：
+AI 教学反馈输出只保留三个字段，前端直接展示这三段内容：
 
 ```json
 {
-  "session_id": "SESS_20260414_212029_001",
-  "task_id": "T001_RP_Standard",
-  "total_score": {
-    "score": 59.9,
-    "max_score": 100
-  },
-  "strengths": [
-    {
-      "text": "你这次能量参数控制较好，能量参数得分为 33.9/35。",
-      "evidence": "功率、光斑大小、曝光时间、波长均接近标准参数。"
-    }
-  ],
-  "weaknesses": [
-    {
-      "text": "主要问题是治疗覆盖不足，覆盖范围得分为 0/35。",
-      "evidence": "玩家实际治疗区域与标准靶区重合不足。",
-      "clinical_risk": "视网膜裂孔周围封锁不完整，可能无法阻断牵拉进展。"
-    }
-  ],
-  "recommendations": [
-    {
-      "action": "下次先根据三面镜检查定位裂孔边界，再围绕裂孔形成连续封锁带。",
-      "principle": "裂孔光凝的目标是在裂孔周围形成稳定粘连屏障。",
-      "indicator": "观察封锁带是否连续包绕裂孔，是否存在漏打缺口。"
-    },
-    {
-      "action": "推进打点时保持约一个光斑直径的间距，避免中心点过近。",
-      "principle": "光斑重叠会造成局部热量堆积。",
-      "indicator": "观察相邻光斑是否明显重叠，本次重叠次数应从 4 次降到 0 次。"
-    }
-  ],
-  "rag_references": [
-    {
-      "chunk_id": "sha256_xxx_p12_c03",
-      "title": "视网膜裂孔周围需要形成连续光凝封锁带",
-      "source_file": "lecture_retinal_tear.pdf",
-      "page_start": 12,
-      "page_end": 13
-    }
-  ]
+  "advantage": "你这次覆盖范围和点位均匀性表现稳定，覆盖范围得分为 35/35，点位均匀性得分为 30/30，说明治疗区域覆盖完整，打点间距控制较稳。",
+  "disadvantage": "主要问题是激光参数空间适配度不足，该项得分为 24.03/35。曝光时间得分为 4.79/8，波长得分为 5.19/8，偏差集中在上方左侧区域，可能导致局部凝固反应不均或治疗效应不足。",
+  "improvement": "下次重点复盘上方左侧区域的曝光时间和波长设置，对照 error_exposure_time_heatmap 与 error_wavelength_map，观察高误差区域是否消失；推进打点时继续保持约一个光斑直径的间距，把重叠次数从 4 次降到 0 次。"
 }
 ```
 
 ### 6.5 字段约束
 
-- `total_score.score` 必须等于评分 JSON 中的 `total_score`。
-- `strengths` 只写 1 到 2 条关键优点。
-- `weaknesses` 优先写最低得分项。
-- `recommendations` 至少 2 条。
-- 每条建议必须包含 `action`、`principle`、`indicator`。
-- `rag_references` 只记录实际命中的知识块，并保留来源文件和页码。
+- 输出 JSON 只能包含 `advantage`、`disadvantage`、`improvement` 三个顶层字段。
+- 不允许输出 `session_id`、`task_id`、`total_score`、`dimension_scores`、`visualization_references`、`rag_references` 或任何其他字段。
+- 三个字段的值必须是字符串，不允许是数组或对象。
+- `advantage` 只写 1 到 2 个关键优点，必须引用评分 JSON 中已有分数或事实。
+- `disadvantage` 优先写最低得分项，必须引用评分 JSON 中已有分数、平均误差或主要偏差区域。
+- `improvement` 必须给出至少 2 个可执行动作，并包含观察指标。
+- 分数、平均误差、主要偏差区域、热力图路径只能来自评分 JSON，不允许模型改写或伪造。
 
 ## 7. Prompt 约束
 
@@ -610,10 +579,11 @@ def generate_teaching_feedback_report(
 - 不得修改任何评分数字。
 - 不得补造评分 JSON 中没有的错误。
 - 不得出现面向学员无意义的算法术语，例如 `IoU`、`R值`、`阈值`、`线性插值`。
-- 可以使用面向学员的表达，例如覆盖范围、能量参数、点位均匀性、重叠扣分。
+- 可以使用面向学员的表达，例如覆盖范围、激光参数空间适配度、参数热力图、局部参数偏差、点位均匀性、重叠扣分。
 - 缺点必须优先选择得分占比最低的项目。
 - 每个问题反馈必须包含现象、机制、临床后果。
 - 每条改进建议必须包含具体动作、背后原理、观察指标。
+- 若最低得分项来自维度二，必须优先解释 `sub_scores` 中得分最低或 `mean_error` 最高的参数，并结合 `main_error_regions` 和 `visualization` 给出可观察复盘指标。
 - RAG 内容只能作为医学解释依据，不能覆盖评分 JSON。
 
 输入消息建议结构：
@@ -691,16 +661,16 @@ evaluation/test/src/config.json
     "manifest_path": "evaluation/test/rag/rag_manifest.json"
   },
   "inputs": {
-    "sample_root": "evaluation/test/sample_data/Temp770298_sample",
-    "case_info_json_path": "evaluation/test/sample_data/Temp770298_sample/R/770298_introduction.json",
-    "rubric_md_path": "evaluation/docs/评分细则v3.md",
+    "sample_root": "evaluation/test/sample_data/Temp770298_sample_v4",
+    "case_info_json_path": "evaluation/test/sample_data/Temp770298_sample_v4/R/770298_introduction.json",
+    "rubric_md_path": "evaluation/docs/评分细则v4.md",
     "prompt_path": "evaluation/docs/llm_structured_scoring_report_prompt.txt",
     "base_scoring_config_path": "evaluation/docs/config.json"
   },
   "outputs": {
-    "runtime_scoring_config_path": "evaluation/test/output/runtime_config_for_test.json",
-    "scoring_output_json_path": "evaluation/test/output/Temp770298_sample_output.json",
-    "teaching_feedback_json_path": "evaluation/test/output/Temp770298_sample_teaching_feedback.json"
+    "runtime_scoring_config_path": "evaluation/test/output/Temp770298_sample_v4/runtime_config_for_test.json",
+    "scoring_output_json_path": "evaluation/test/output/Temp770298_sample_v4/score_result.json",
+    "teaching_feedback_json_path": "evaluation/test/output/Temp770298_sample_v4/teaching_feedback.json"
   }
 }
 ```
@@ -799,6 +769,7 @@ evaluation/test/src/test_evaluator.py
 - RAG 向量数据库位置：`rag.chroma_db_path`。
 - 提示词：`prompt_path`。
 - 评分配置：`base_scoring_config_path`，测试脚本可生成 runtime config 后传给 `evaluator.py`。
+- 维度二空间参数配置：测试脚本需要在 runtime config 中注入 `param_tolerance_abs` 和 `spatial_parameter_field`，例如功率容忍值、光斑直径容忍值、曝光时间容忍值和参数场影响半径。
 - LLM 配置和 embedding 配置：从 `config.json` 读取后显式传给 `main/src`。
 
 流程：
@@ -819,8 +790,8 @@ evaluation/test/src/test_evaluator.py
 输出文件：
 
 ```text
-evaluation/test/output/Temp770298_sample_output.json
-evaluation/test/output/Temp770298_sample_teaching_feedback.json
+evaluation/test/output/Temp770298_sample_v4/score_result.json
+evaluation/test/output/Temp770298_sample_v4/teaching_feedback.json
 ```
 
 要求：
@@ -835,9 +806,9 @@ evaluation/test/output/Temp770298_sample_teaching_feedback.json
 使用当前样本：
 
 ```text
-evaluation/test/output/Temp770298_sample_output.json
-evaluation/docs/评分细则v3.md
-evaluation/test/sample_data/Temp770298_sample/R/770298_introduction.json
+evaluation/test/output/Temp770298_sample_v4/score_result.json
+evaluation/docs/评分细则v4.md
+evaluation/test/sample_data/Temp770298_sample_v4/R/770298_introduction.json
 evaluation/docs/llm_structured_scoring_report_prompt.txt
 ```
 
@@ -847,9 +818,13 @@ AI 输出必须保留以下事实：
 
 | 指标 | 期望值 |
 | :--- | :--- |
-| 总分 | `59.9/100` |
-| 覆盖范围 | `0/35` |
-| 能量参数 | `33.9/35` |
+| 总分 | `85.03/100` |
+| 覆盖范围 | `35/35` |
+| 激光参数空间适配度 | `24.03/35` |
+| 功率 | `7.61/11`，平均误差 `0.3078` |
+| 光斑直径 | `6.44/8`，平均误差 `0.1945` |
+| 曝光时间 | `4.79/8`，平均误差 `0.4018`，主要偏差区域 `上方左侧曝光时间偏差较高` |
+| 波长 | `5.19/8`，平均误差 `0.3516`，主要偏差区域 `上方左侧波长偏差较高` |
 | 点位均匀性 | `30/30` |
 | 光斑重叠 | `4` 次 |
 | 病例诊断 | `视网膜裂孔` |
@@ -861,16 +836,20 @@ AI 输出必须保留以下事实：
 测试时必须检查：
 
 - 输出能被 `json.loads()` 正常解析。
-- 必须包含 `session_id`、`task_id`、`total_score`、`strengths`、`weaknesses`、`recommendations`、`rag_references`。
-- `recommendations` 每一项都包含 `action`、`principle`、`indicator`。
-- `weaknesses` 中必须优先出现覆盖范围不足。
+- 顶层字段必须且只能包含 `advantage`、`disadvantage`、`improvement`。
+- 三个字段的值必须都是字符串。
+- `advantage` 必须包含至少一个评分事实，例如 `35/35` 或 `30/30`。
+- `disadvantage` 必须优先出现激光参数空间适配度不足，并包含至少一个评分事实，例如 `24.03/35`、`4.79/8` 或 `5.19/8`。
+- 若引用维度二问题，`disadvantage` 或 `improvement` 必须包含至少一个 `main_error_regions` 中的区域描述，当前样本应包含 `上方左侧`。
+- `improvement` 必须包含至少两个可执行动作，并至少一个观察指标，例如 `error_exposure_time_heatmap`、`error_wavelength_map` 或 `重叠次数从 4 次降到 0 次`。
 
 ### 8.8 RAG 命中校验
 
 当前样本的 RAG 命中结果至少包含：
 
-- 裂孔周围连续封锁带相关知识。
-- 覆盖不足导致封闭不完整的风险。
+- 激光参数空间策略或参数场适配相关知识。
+- 曝光时间偏差与局部热损伤或凝固反应不均相关知识。
+- 波长选择与组织吸收特性相关知识。
 - 光斑重叠导致局部热量堆积的风险。
 
 如果没有命中这些知识，说明 query 生成或知识块标签设计存在问题。
