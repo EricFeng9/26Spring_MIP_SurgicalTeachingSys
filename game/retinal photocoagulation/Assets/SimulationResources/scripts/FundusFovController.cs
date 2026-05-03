@@ -28,26 +28,27 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
     [Header("UI References")]
     [SerializeField] private RawImage fundusRawImage;         // 清晰图
     [SerializeField] private RawImage focusBlurRawImage;      // 模糊层（叠在清晰图上面）
-    [SerializeField] private RectTransform circularViewportRect;
+    [SerializeField] private RectTransform circularViewportRect; //圆形可见区域
     [SerializeField] private TMP_Dropdown lensDropdown;
     [SerializeField] private Text debugText;                  // 可选
 
     [Header("Source Image")]
     [SerializeField] private Texture2D sourceTexture;
     [SerializeField, Range(0, 50)] private int nonBlackThreshold = 8;
-    [SerializeField] private bool useMaskCentroidAsStart = true;
+    [SerializeField] private bool useMaskCentroidAsStart = true;//把非黑色部分的质心作为中心点
     [SerializeField, Range(0f, 1f)] private float startXFraction = 0.5f;
     [SerializeField, Range(0f, 1f)] private float startYFraction = 0.5f;
 
     [Header("FOV Settings")]
     [SerializeField] private WorkingLensPreset lensPreset = WorkingLensPreset.GoldmannWorking38;
-    [SerializeField] private CameraPreset cameraPreset = CameraPreset.Optos200;
+    [SerializeField] private CameraPreset cameraPreset = CameraPreset.Montage267;
     [SerializeField, Range(30f, 300f)] private float customCameraTotalDeg = 200f;
 
     [Header("Movement")]
     [SerializeField] private bool enableKeyboardMove = true;
     [SerializeField] private bool useWASD = true;
     [SerializeField] private float moveSpeedPxPerSecond = 180f;
+    [SerializeField] private float fineMoveSpeedMultiplier = 0.2f;
     [SerializeField] private bool normalizeDiagonal = true;
 
     [Header("Mask Relaxation")]
@@ -187,7 +188,10 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         if (normalizeDiagonal)
             dir = dir.normalized;
 
-        Vector2 deltaPx = dir * moveSpeedPxPerSecond * Time.deltaTime;
+        float speedMultiplier = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            ? fineMoveSpeedMultiplier
+            : 1f;
+        Vector2 deltaPx = dir * moveSpeedPxPerSecond * Mathf.Max(0f, speedMultiplier) * Time.deltaTime;
 
         // 横向规则：
         // 1. 裂隙不在中心 -> 先只动裂隙，不许图像横向动
@@ -195,29 +199,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         // 3. 图像到左右边 -> 才开始动裂隙
         if (Mathf.Abs(deltaPx.x) > 0.001f)
         {
-            if (slitLamp != null && !slitLamp.IsSlitCentered())
-            {
-                float viewportWidth = circularViewportRect != null ? circularViewportRect.rect.width : 0f;
-                if (viewportWidth > 0.001f)
-                {
-                    float normalizedDelta = deltaPx.x / viewportWidth;
-                    slitLamp.AddSlitCenterXNormalized(normalizedDelta);
-                }
-            }
-            else
-            {
-                bool movedX = TryMoveImageX(deltaPx.x);
-
-                if (!movedX && slitLamp != null)
-                {
-                    float viewportWidth = circularViewportRect != null ? circularViewportRect.rect.width : 0f;
-                    if (viewportWidth > 0.001f)
-                    {
-                        float normalizedDelta = deltaPx.x / viewportWidth;
-                        slitLamp.AddSlitCenterXNormalized(normalizedDelta);
-                    }
-                }
-            }
+            MoveHorizontalByDirection(Mathf.Sign(deltaPx.x));
         }
 
         // 纵向始终只动图像
@@ -225,6 +207,58 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         {
             TryMoveImageY(deltaPx.y);
         }
+    }
+
+    public void MoveHorizontalByDirection(float direction, float speedScale = 1f)
+    {
+        if (!isReady)
+            return;
+
+        float signedDirection = Mathf.Sign(direction);
+        if (Mathf.Abs(signedDirection) <= 0.001f)
+            return;
+
+        float deltaPx = signedDirection * moveSpeedPxPerSecond * Mathf.Max(0f, speedScale) * Time.deltaTime;
+        if (Mathf.Abs(deltaPx) <= 0.001f)
+            return;
+
+        if (slitLamp != null && !slitLamp.IsSlitCentered())
+        {
+            float viewportWidth = circularViewportRect != null ? circularViewportRect.rect.width : 0f;
+            if (viewportWidth > 0.001f)
+            {
+                float normalizedDelta = deltaPx / viewportWidth;
+                slitLamp.AddSlitCenterXNormalized(normalizedDelta);
+            }
+            return;
+        }
+
+        bool movedX = TryMoveImageX(deltaPx);
+        if (movedX || slitLamp == null)
+            return;
+
+        float slitViewportWidth = circularViewportRect != null ? circularViewportRect.rect.width : 0f;
+        if (slitViewportWidth <= 0.001f)
+            return;
+
+        float slitNormalizedDelta = deltaPx / slitViewportWidth;
+        slitLamp.AddSlitCenterXNormalized(slitNormalizedDelta);
+    }
+
+    public void MoveVerticalByDirection(float direction, float speedScale = 1f)
+    {
+        if (!isReady)
+            return;
+
+        float signedDirection = Mathf.Sign(direction);
+        if (Mathf.Abs(signedDirection) <= 0.001f)
+            return;
+
+        float deltaPx = signedDirection * moveSpeedPxPerSecond * Mathf.Max(0f, speedScale) * Time.deltaTime;
+        if (Mathf.Abs(deltaPx) <= 0.001f)
+            return;
+
+        TryMoveImageY(deltaPx);
     }
 
     public void InitializeWithTexture(Texture2D texture)

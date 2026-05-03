@@ -23,16 +23,9 @@ public class LaserTreatmentController : MonoBehaviour
     private class ExportShotParams
     {
         public float power;
-        public float spot_size_set;
+        public float spot_size;
         public float exposure_time;
         public float wavelength;
-        public string mode;
-        public string matrix_shape;
-        public int matrix_shape_param;
-        public float matrix_spacing_x_spot;
-        public float matrix_rotation_deg;
-        public float matrix_offset_dx;
-        public float matrix_offset_dy;
     }
 
     [Serializable]
@@ -40,8 +33,8 @@ public class LaserTreatmentController : MonoBehaviour
     {
         public int id;
         public float[] pos;
+        public float radius_px;
         public bool is_trial;
-        public int spot_grade;
         public ExportShotParams @params;
     }
 
@@ -171,6 +164,15 @@ public class LaserTreatmentController : MonoBehaviour
     [SerializeField] private Button miniMapButton;
     [SerializeField] private Button endSurgeryButton;
     [SerializeField] private GameObject popupMinimapOverlay;
+    [SerializeField] private Button minimapCloseButton;
+    [SerializeField] private RawImage minimapRawImage;
+    [SerializeField] private RectTransform minimapViewportRect;
+    [SerializeField] private Image minimapLitRegionImage;
+
+    [Header("Minimap")]
+    [SerializeField] private float minimapBlinkSpeed = 2.4f;
+    [SerializeField, Range(0f, 1f)] private float minimapBlinkMinAlpha = 0.3f;
+    [SerializeField, Range(0f, 1f)] private float minimapBlinkMaxAlpha = 0.95f;
 
     [Header("Export")]
     [SerializeField] private string outputRelativeDirectory = "Assets/SimulationResources/player_output";
@@ -205,6 +207,7 @@ public class LaserTreatmentController : MonoBehaviour
     private BlurRegion pendingBlurRegion;
     private Vector2 aimOffsetNormalized = Vector2.zero;
     private float shotFlashAlpha = 0f;
+    private static readonly Color MinimapHighlightBaseColor = new Color(0.2f, 1f, 0.45f, 1f);
 
     private void Awake()
     {
@@ -242,6 +245,9 @@ public class LaserTreatmentController : MonoBehaviour
         if (miniMapButton != null)
             miniMapButton.onClick.AddListener(OpenMiniMap);
 
+        if (minimapCloseButton != null)
+            minimapCloseButton.onClick.AddListener(CloseMiniMap);
+
         if (endSurgeryButton != null)
             endSurgeryButton.onClick.AddListener(EndSurgery);
 
@@ -253,6 +259,7 @@ public class LaserTreatmentController : MonoBehaviour
     {
         EnsureRuntimeTextures();
         RefreshCrosshair();
+        RefreshMinimapVisuals(forceHideWhenUnavailable: true);
         RefreshInfoBar(force: true);
         RefreshStatus(null, default);
     }
@@ -280,6 +287,9 @@ public class LaserTreatmentController : MonoBehaviour
         if (miniMapButton != null)
             miniMapButton.onClick.RemoveListener(OpenMiniMap);
 
+        if (minimapCloseButton != null)
+            minimapCloseButton.onClick.RemoveListener(CloseMiniMap);
+
         if (endSurgeryButton != null)
             endSurgeryButton.onClick.RemoveListener(EndSurgery);
 
@@ -298,6 +308,7 @@ public class LaserTreatmentController : MonoBehaviour
         EnsureRuntimeTextures();
         HandleAimInput();
         RefreshCrosshair();
+        RefreshMinimapVisuals();
         UpdateShotFlash();
         surgeryElapsedSeconds += Time.deltaTime;
 
@@ -383,6 +394,8 @@ public class LaserTreatmentController : MonoBehaviour
         currentSessionId = BuildSessionId();
         RefreshInfoBar(force: true);
         RestoreBaseBlurTexture();
+        SyncMinimapTexture();
+        RefreshMinimapVisuals(forceHideWhenUnavailable: true);
     }
 
     private void Fire(LaserShotParameters parameters)
@@ -758,18 +771,12 @@ public class LaserTreatmentController : MonoBehaviour
 
     private bool TryParseLaserMode(string value, out LaserMode mode)
     {
-        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse(value, true, out mode))
-            return true;
-
         mode = LaserMode.Single;
         return false;
     }
 
     private bool TryParseMatrixShape(string value, out MatrixShape shape)
     {
-        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse(value, true, out shape))
-            return true;
-
         shape = MatrixShape.Square;
         return false;
     }
@@ -780,9 +787,10 @@ public class LaserTreatmentController : MonoBehaviour
             return;
 
         Vector2 viewportDiameter = GetViewportDiameter();
-        aimOffsetNormalized = ConvertAnchoredPositionToAimOffset(
-            ClampAimAnchoredPositionToLitRegion(GetAimAnchoredPosition()),
-            viewportDiameter);
+        Vector2 anchoredPosition = GetAimAnchoredPosition();
+        aimOffsetNormalized = new Vector2(
+            0f,
+            viewportDiameter.y <= 0.001f ? 0f : Mathf.Clamp(anchoredPosition.y / viewportDiameter.y, -0.5f, 0.5f));
 
         float aiming = Mathf.Clamp(aimingBeamLevel != null ? aimingBeamLevel.ReadValue() : 50f, 0f, 100f);
         if (crosshairImage != null)
@@ -792,7 +800,88 @@ public class LaserTreatmentController : MonoBehaviour
             crosshairImage.color = color;
         }
 
-        crosshairRect.anchoredPosition = GetAimAnchoredPosition();
+        crosshairRect.anchoredPosition = anchoredPosition;
+    }
+
+    private void SyncMinimapTexture()
+    {
+        if (minimapRawImage == null)
+            return;
+
+        minimapRawImage.texture = workingTexture;
+    }
+
+    private void RefreshMinimapVisuals(bool forceHideWhenUnavailable = false)
+    {
+        if (minimapLitRegionImage == null)
+            return;
+
+        if (workingTexture == null || fovController == null || !fovController.IsReady)
+        {
+            if (forceHideWhenUnavailable)
+                minimapLitRegionImage.enabled = false;
+            return;
+        }
+
+        SyncMinimapTexture();
+
+        RectTransform viewportRect = minimapViewportRect != null
+            ? minimapViewportRect
+            : (minimapRawImage != null ? minimapRawImage.rectTransform : null);
+        if (viewportRect == null)
+        {
+            if (forceHideWhenUnavailable)
+                minimapLitRegionImage.enabled = false;
+            return;
+        }
+
+        RectTransform highlightRect = minimapLitRegionImage.rectTransform;
+        float mapWidth = viewportRect.rect.width;
+        float mapHeight = viewportRect.rect.height;
+        if (mapWidth <= 0.001f || mapHeight <= 0.001f)
+        {
+            if (forceHideWhenUnavailable)
+                minimapLitRegionImage.enabled = false;
+            return;
+        }
+
+        float texWidth = workingTexture.width;
+        float texHeight = workingTexture.height;
+        if (texWidth <= 0.001f || texHeight <= 0.001f)
+        {
+            if (forceHideWhenUnavailable)
+                minimapLitRegionImage.enabled = false;
+            return;
+        }
+
+        Vector2 slitBounds = slitLamp != null ? slitLamp.GetSlitBoundsNormalized() : new Vector2(0f, 1f);
+        float normalizedWidth = Mathf.Clamp01(slitBounds.y - slitBounds.x);
+        float normalizedHeight = Mathf.Clamp01(fovController.CurrentDiameterPx / texHeight);
+        float centerXNormalized = Mathf.Clamp01(fovController.CurrentCenterPx.x / texWidth);
+        float centerYNormalized = Mathf.Clamp01(fovController.CurrentCenterPx.y / texHeight);
+
+        float rectWidth = Mathf.Clamp(normalizedWidth * mapWidth, 2f, mapWidth);
+        float rectHeight = Mathf.Clamp(normalizedHeight * mapHeight, 2f, mapHeight);
+        float rectLeft = Mathf.Clamp(centerXNormalized - normalizedWidth * 0.5f, 0f, 1f - normalizedWidth);
+        float rectTop = Mathf.Clamp(centerYNormalized - normalizedHeight * 0.5f, 0f, 1f - normalizedHeight);
+        float rectCenterX = rectLeft + normalizedWidth * 0.5f;
+        float rectCenterY = rectTop + normalizedHeight * 0.5f;
+
+        float anchoredX = Mathf.Lerp(-mapWidth * 0.5f, mapWidth * 0.5f, rectCenterX);
+        float anchoredY = Mathf.Lerp(mapHeight * 0.5f, -mapHeight * 0.5f, rectCenterY);
+
+        highlightRect.anchorMin = new Vector2(0.5f, 0.5f);
+        highlightRect.anchorMax = new Vector2(0.5f, 0.5f);
+        highlightRect.pivot = new Vector2(0.5f, 0.5f);
+        highlightRect.anchoredPosition = new Vector2(anchoredX, anchoredY);
+        highlightRect.sizeDelta = new Vector2(rectWidth, rectHeight);
+
+        float blinkT = (Mathf.Sin(Time.unscaledTime * Mathf.Max(0.01f, minimapBlinkSpeed) * Mathf.PI * 2f) + 1f) * 0.5f;
+        float alpha = Mathf.Lerp(minimapBlinkMinAlpha, minimapBlinkMaxAlpha, blinkT);
+        Color color = MinimapHighlightBaseColor;
+        color.a = alpha;
+        minimapLitRegionImage.color = color;
+        minimapLitRegionImage.enabled = true;
     }
 
     private void RefreshInfoBar(bool force = false)
@@ -934,7 +1023,7 @@ public class LaserTreatmentController : MonoBehaviour
             int removeCount = Mathf.Clamp(snapshot.shotCountDelta, 1, shotHistory.Count);
             shotHistory.RemoveRange(shotHistory.Count - removeCount, removeCount);
             shotCount = shotHistory.Count;
-            lastComputedGrade = shotHistory.Count > 0 ? shotHistory[shotHistory.Count - 1].spot_grade : 0;
+            lastComputedGrade = shotHistory.Count > 0 ? 0 : 0;
 
             QueueBlurRebuild(snapshot.blurRegion);
             RefreshInfoBar(force: true);
@@ -943,7 +1032,7 @@ public class LaserTreatmentController : MonoBehaviour
             {
                 ExportShotRecord lastRecord = shotHistory[shotHistory.Count - 1];
                 LaserShotParameters statusParams = BuildParametersFromRecord(lastRecord);
-                LaserShotMetrics statusMetrics = new LaserShotMetrics { grade = lastRecord.spot_grade };
+                LaserShotMetrics statusMetrics = default;
                 RefreshStatus(statusParams, statusMetrics);
             }
             else
@@ -956,7 +1045,7 @@ public class LaserTreatmentController : MonoBehaviour
 
         shotHistory.RemoveAt(shotHistory.Count - 1);
         shotCount = shotHistory.Count;
-        lastComputedGrade = shotHistory.Count > 0 ? shotHistory[shotHistory.Count - 1].spot_grade : 0;
+        lastComputedGrade = 0;
         RebuildWorkingTextureFromHistory();
         RefreshInfoBar(force: true);
         RefreshStatus(null, default);
@@ -970,6 +1059,8 @@ public class LaserTreatmentController : MonoBehaviour
         lastComputedGrade = 0;
         RestoreBaseTexture();
         RestoreBaseBlurTexture();
+        SyncMinimapTexture();
+        RefreshMinimapVisuals(forceHideWhenUnavailable: true);
         RefreshInfoBar(force: true);
         RefreshStatus(null, default);
     }
@@ -978,6 +1069,14 @@ public class LaserTreatmentController : MonoBehaviour
     {
         if (popupMinimapOverlay != null)
             popupMinimapOverlay.SetActive(true);
+
+        RefreshMinimapVisuals(forceHideWhenUnavailable: true);
+    }
+
+    private void CloseMiniMap()
+    {
+        if (popupMinimapOverlay != null)
+            popupMinimapOverlay.SetActive(false);
     }
 
     private void EndSurgery()
@@ -994,21 +1093,14 @@ public class LaserTreatmentController : MonoBehaviour
         {
             id = id,
             pos = new[] { (float)point.x, (float)point.y },
+            radius_px = metrics.effectiveRadiusPx,
             is_trial = parameters.titrateMode,
-            spot_grade = metrics.grade,
             @params = new ExportShotParams
             {
                 power = parameters.powerMw,
-                spot_size_set = parameters.spotSizeUm,
+                spot_size = parameters.spotSizeUm,
                 exposure_time = parameters.durationMs,
-                wavelength = parameters.wavelengthNm,
-                mode = parameters.mode.ToString(),
-                matrix_shape = parameters.shape.ToString(),
-                matrix_shape_param = GetEffectiveShapeParam(parameters),
-                matrix_spacing_x_spot = parameters.spacingXSpot,
-                matrix_rotation_deg = parameters.rotationDeg,
-                matrix_offset_dx = parameters.offsetDx,
-                matrix_offset_dy = parameters.offsetDy
+                wavelength = parameters.wavelengthNm
             }
         };
     }
@@ -1067,26 +1159,10 @@ public class LaserTreatmentController : MonoBehaviour
             return parameters;
 
         parameters.powerMw = record.@params.power;
-        parameters.spotSizeUm = record.@params.spot_size_set;
+        parameters.spotSizeUm = record.@params.spot_size;
         parameters.durationMs = record.@params.exposure_time;
         parameters.wavelengthNm = record.@params.wavelength;
         parameters.titrateMode = record.is_trial;
-
-        if (!TryParseLaserMode(record.@params.mode, out parameters.mode))
-            parameters.mode = LaserMode.Single;
-
-        if (!TryParseMatrixShape(record.@params.matrix_shape, out parameters.shape))
-            parameters.shape = MatrixShape.Square;
-
-        parameters.shapeParam = record.@params.matrix_shape_param > 0
-            ? record.@params.matrix_shape_param
-            : Mathf.Max(1, parameters.shapeParam);
-        parameters.spacingXSpot = record.@params.matrix_spacing_x_spot > 0f
-            ? record.@params.matrix_spacing_x_spot
-            : parameters.spacingXSpot;
-        parameters.rotationDeg = record.@params.matrix_rotation_deg;
-        parameters.offsetDx = record.@params.matrix_offset_dx;
-        parameters.offsetDy = record.@params.matrix_offset_dy;
         return parameters;
     }
 
@@ -1638,32 +1714,41 @@ public class LaserTreatmentController : MonoBehaviour
         if (HasInteractiveUiFocus())
             return;
 
-        Vector2 dir = Vector2.zero;
+        float horizontal = 0f;
+        float vertical = 0f;
 
         if (Input.GetKey(KeyCode.UpArrow))
-            dir.y += 1f;
+            vertical += 1f;
 
         if (Input.GetKey(KeyCode.DownArrow))
-            dir.y -= 1f;
+            vertical -= 1f;
 
         if (Input.GetKey(KeyCode.LeftArrow))
-            dir.x -= 1f;
+            horizontal -= 1f;
 
         if (Input.GetKey(KeyCode.RightArrow))
-            dir.x += 1f;
+            horizontal += 1f;
 
-        if (dir == Vector2.zero)
+        if (Mathf.Abs(horizontal) <= 0.001f && Mathf.Abs(vertical) <= 0.001f)
             return;
 
-        Vector2 viewportDiameter = GetViewportDiameter();
         float speedMultiplier = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             ? fineAimSpeedMultiplier
             : 1f;
-        float moveDistance = aimMoveSpeedNormalized * speedMultiplier * Time.deltaTime * Mathf.Min(viewportDiameter.x, viewportDiameter.y);
-        Vector2 candidate = GetAimAnchoredPosition() + dir.normalized * moveDistance;
-        aimOffsetNormalized = ConvertAnchoredPositionToAimOffset(
-            ClampAimAnchoredPositionToLitRegion(candidate),
-            viewportDiameter);
+
+        if (Mathf.Abs(horizontal) > 0.001f)
+            fovController.MoveHorizontalByDirection(horizontal, speedMultiplier);
+
+        if (Mathf.Abs(vertical) > 0.001f)
+        {
+            Vector2 viewportDiameter = GetViewportDiameter();
+            float moveDistance = aimMoveSpeedNormalized * speedMultiplier * Time.deltaTime * Mathf.Min(viewportDiameter.x, viewportDiameter.y);
+            Vector2 candidate = GetAimAnchoredPosition() + new Vector2(0f, vertical) * moveDistance;
+            Vector2 clamped = ClampAimAnchoredPositionToLitRegion(candidate);
+            aimOffsetNormalized.y = viewportDiameter.y <= 0.001f
+                ? 0f
+                : Mathf.Clamp(clamped.y / viewportDiameter.y, -0.5f, 0.5f);
+        }
     }
 
     private Vector2 ClampAimAnchoredPositionToLitRegion(Vector2 anchoredPosition)
@@ -1736,9 +1821,9 @@ public class LaserTreatmentController : MonoBehaviour
         if (viewportDiameter.x <= 0f || viewportDiameter.y <= 0f)
             return Vector2.zero;
 
-        return ClampAimAnchoredPositionToLitRegion(new Vector2(
-            aimOffsetNormalized.x * viewportDiameter.x,
-            aimOffsetNormalized.y * viewportDiameter.y));
+        float y = aimOffsetNormalized.y * viewportDiameter.y;
+        Vector2 anchoredPosition = new Vector2(GetSlitOffsetUiX(), y);
+        return ClampAimAnchoredPositionToLitRegion(anchoredPosition);
     }
 
     private Texture2D CreateBlurredTexture(Texture2D source, int radius)

@@ -89,8 +89,8 @@ public static class LaserSpotRenderer
                 Color src = roi[idx];
                 Color filled = Color.Lerp(src, lesionColor, edgeSoft);
 
-                float warmLift = edgeSoft * (0.10f + 0.10f * appearance) * (1f - occluderMask * 0.35f);
-                filled = Color.Lerp(filled, Color.Lerp(lesionColor, Color.white, 0.08f), warmLift);
+                float warmLift = edgeSoft * (0.12f + 0.08f * appearance) * (1f - occluderMask * 0.25f);
+                filled = Color.Lerp(filled, Color.Lerp(lesionColor, new Color(0.96f, 0.90f, 0.46f, 1f), 0.55f), warmLift);
 
                 float darkenMask = occluderMask * profile.occluderStrength * edgeSoft;
                 filled = Color.Lerp(filled, occluderColor, darkenMask);
@@ -98,7 +98,7 @@ public static class LaserSpotRenderer
                 if (profile.centerHighlight > 0f)
                 {
                     float centerMask = Gaussian(nx, ny, 0.02f, 0.01f, 0.28f, 0.24f, 1.9f) * edgeSoft;
-                    Color centerColor = Color.Lerp(lesionColor, Color.white, 0.24f + 0.22f * appearance);
+                    Color centerColor = Color.Lerp(lesionColor, new Color(0.95f, 0.88f, 0.40f, 1f), 0.42f + 0.18f * appearance);
                     filled = Color.Lerp(filled, centerColor, centerMask * profile.centerHighlight);
                 }
 
@@ -141,9 +141,9 @@ public static class LaserSpotRenderer
                     occluderScaleX = 0.64f,
                     occluderScaleY = 0.48f,
                     occluderStrength = 0.12f,
-                    hueShift = 0.028f,
-                    saturationScale = 0.76f,
-                    valueLift = 0.08f,
+                    hueShift = 0.070f,
+                    saturationScale = 1.18f,
+                    valueLift = 0.10f,
                     softness = 1.35f,
                     coreFill = 0.82f,
                     centerHighlight = 0f
@@ -153,8 +153,8 @@ public static class LaserSpotRenderer
                 to.mainBlobScaleY = 0.64f;
                 to.shoulderWeight = 0.24f;
                 to.supportWeight = 0.06f;
-                to.occluderStrength = 0.15f;
-                to.valueLift = 0.11f;
+                to.occluderStrength = 0.12f;
+                to.valueLift = 0.14f;
                 break;
 
             case 2:
@@ -176,9 +176,9 @@ public static class LaserSpotRenderer
                     occluderScaleX = 0.68f,
                     occluderScaleY = 0.52f,
                     occluderStrength = 0.18f,
-                    hueShift = 0.024f,
-                    saturationScale = 0.72f,
-                    valueLift = 0.12f,
+                    hueShift = 0.064f,
+                    saturationScale = 1.12f,
+                    valueLift = 0.14f,
                     softness = 1.28f,
                     coreFill = 0.86f,
                     centerHighlight = 0f
@@ -188,8 +188,8 @@ public static class LaserSpotRenderer
                 to.mainBlobScaleY = 0.74f;
                 to.shoulderWeight = 0.34f;
                 to.supportWeight = 0.10f;
-                to.occluderStrength = 0.22f;
-                to.valueLift = 0.14f;
+                to.occluderStrength = 0.18f;
+                to.valueLift = 0.18f;
                 break;
 
             case 3:
@@ -211,9 +211,9 @@ public static class LaserSpotRenderer
                     occluderScaleX = 0.72f,
                     occluderScaleY = 0.56f,
                     occluderStrength = 0.26f,
-                    hueShift = 0.020f,
-                    saturationScale = 0.68f,
-                    valueLift = 0.15f,
+                    hueShift = 0.058f,
+                    saturationScale = 1.04f,
+                    valueLift = 0.17f,
                     softness = 1.18f,
                     coreFill = 0.90f,
                     centerHighlight = 0.14f
@@ -223,8 +223,9 @@ public static class LaserSpotRenderer
                 to.mainBlobScaleY = 0.84f;
                 to.shoulderWeight = 0.42f;
                 to.supportWeight = 0.16f;
-                to.occluderStrength = 0.30f;
-                to.centerHighlight = 0.22f;
+                to.occluderStrength = 0.24f;
+                to.valueLift = 0.22f;
+                to.centerHighlight = 0.18f;
                 break;
 
             default:
@@ -246,9 +247,9 @@ public static class LaserSpotRenderer
                     occluderScaleX = 0.74f,
                     occluderScaleY = 0.58f,
                     occluderStrength = 0.34f,
-                    hueShift = 0.012f,
-                    saturationScale = 0.48f,
-                    valueLift = 0.24f,
+                    hueShift = 0.050f,
+                    saturationScale = 0.96f,
+                    valueLift = 0.22f,
                     softness = 1.08f,
                     coreFill = 0.92f,
                     centerHighlight = 0.28f
@@ -258,10 +259,10 @@ public static class LaserSpotRenderer
                 to.mainBlobScaleY = 0.92f;
                 to.shoulderWeight = 0.46f;
                 to.supportWeight = 0.20f;
-                to.occluderStrength = 0.40f;
-                to.saturationScale = 0.42f;
-                to.valueLift = 0.30f;
-                to.centerHighlight = 0.40f;
+                to.occluderStrength = 0.32f;
+                to.saturationScale = 0.90f;
+                to.valueLift = 0.28f;
+                to.centerHighlight = 0.30f;
                 break;
         }
 
@@ -339,11 +340,11 @@ public static class LaserSpotRenderer
 
     private static Color BuildOccluderColor(Color localBg, Color lesionColor)
     {
-        Color mixed = Color.Lerp(localBg, lesionColor, 0.28f);
+        Color mixed = Color.Lerp(localBg, lesionColor, 0.18f);
         Color.RGBToHSV(mixed, out float h, out float s, out float v);
         h = Mathf.Repeat(h - 0.018f, 1f);
-        s = Mathf.Clamp01(s * 1.08f);
-        v = Mathf.Clamp01(v * 0.74f);
+        s = Mathf.Clamp01(s * 0.96f);
+        v = Mathf.Clamp01(v * 0.78f);
         return ClampColor(Color.HSVToRGB(h, s, v));
     }
 
