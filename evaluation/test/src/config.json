@@ -1,15 +1,16 @@
 {
   "llm": {
-    "base_url": "https://api.example.com/v1",
-    "api_key": "YOUR_API_KEY",
-    "model": "chat-model-name",
+    "base_url": "https://api.vectorengine.ai/v1",
+    "api_key": "sk-mpM96bMS7NmOz4bafXzODWLA59sdReWafZBdaJ7RJiBEbC7E",
+    "model": "deepseek-v4-flash",
     "temperature": 0.2,
     "timeout_seconds": 60
   },
   "embedding": {
-    "base_url": "https://api.example.com/v1",
-    "api_key": "YOUR_API_KEY",
-    "model": "embedding-model-name",
+    "provider": "openai_compatible",
+    "base_url": "https://api.vectorengine.ai/v1",
+    "api_key": "sk-mpM96bMS7NmOz4bafXzODWLA59sdReWafZBdaJ7RJiBEbC7E",
+    "model": "text-embedding-3-small",
     "timeout_seconds": 60
   },
   "rag": {

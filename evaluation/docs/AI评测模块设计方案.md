@@ -15,6 +15,44 @@ AI 评测模块属于教学复盘层，目标不是重新评分，而是把 `eva
 
 因此，本模块的第一性问题是：**如何让学员知道自己为什么扣分、临床风险是什么、下一次具体怎么改。**
 
+## 0. 当前实现状态（2026-05-02）
+
+当前代码已经进入“本地评分 + RAG 构建 + AI 教学反馈调用”联调阶段。
+
+已经完成：
+
+- `evaluation/main/src/main.py`：统一入口 `evaluate_with_ai_feedback(...)`，上层只需调用该入口即可完成本地评分和 AI 教学反馈调用。
+- `evaluation/main/src/ai_processor.py`：已实现 OpenAI-compatible embedding、ChromaDB 检索、OpenAI-compatible chat 调用和三字段 JSON 校验。
+- `evaluation/main/src/rag_builder.py`：已实现 PDF 扫描、PDF 按页解析、规则分块、embedding、ChromaDB 入库、manifest 增量更新。
+- `evaluation/test/src/build_rag.py`：已实现测试层 RAG 构建入口和自检查。
+- `evaluation/test/src/test_evaluator.py`：已改为调用 `main.py`，测试层负责准备路径和配置。
+- `evaluation/test/src/config.json`：已集中配置测试样本、RAG 路径、LLM 和 embedding 参数。
+- `evaluation/test/rag/raw_docs/`：已放入公开来源的眼底激光、视网膜裂孔、糖网激光 PDF 资料。
+
+当前测试样本：
+
+```text
+evaluation/test/sample_data/2604_sampledata/4226701
+```
+
+当前输出目录：
+
+```text
+evaluation/test/output/4226701
+```
+
+当前模型配置：
+
+- Chat model：`deepseek-v4-flash`
+- Embedding model：`text-embedding-3-small`
+- Base URL：由测试配置 `evaluation/test/src/config.json` 提供
+
+仍需后续优化：
+
+- `rag_builder.py` 当前使用规则切块，尚未调用 LLM 做知识块语义重写和标签增强。
+- `ai_processor.py` 当前只返回 `advantage`、`disadvantage`、`improvement`，不返回 RAG 引用给前端。
+- RAG 命中质量还需要结合真实医生资料继续调 chunk 粒度、query 生成和标签策略。
+
 不解决的问题：
 
 - 不重新计算覆盖范围、激光参数空间适配度、点位均匀性。
@@ -854,26 +892,20 @@ AI 输出必须保留以下事实：
 
 如果没有命中这些知识，说明 query 生成或知识块标签设计存在问题。
 
-## 9. 后续实现顺序
+## 9. 后续优化顺序
 
-后续代码实现建议按以下顺序推进：
+当前 1-6 步基础链路已经完成，后续建议继续优化：
 
-1. 在 `test/src` 调用样例中建立 `evaluation/test/rag/raw_docs/`、`parsed_cache/`、`chunk_cache/`、`chroma_db/` 目录约定。
-2. 实现 `rag_builder.py`：扫描 PDF、计算 hash、维护 `rag_manifest.json`。
-3. 实现 PDF 解析，按页保留文本和页码。
-4. 实现知识块生成：先用规则切块，必要时调用 LLM 生成标题、标签和摘要。
-5. 实现 chunk JSON 校验和 ChromaDB 写入。
-6. 实现增量更新：新增、修改、删除、跳过未变化文件。
-7. 在 `ai_processor.py` 中实现接收输入数据、提取评分事实、生成 query 和 ChromaDB 检索。
-8. 实现 OpenAI-compatible LLM 调用、JSON 解析与字段校验。
-9. 新增 `evaluation/test/src/config.json`，统一管理测试层路径和 AI 配置。
-10. 新增 `evaluation/test/src/build_rag.py`，调用 `main/src/rag_builder.py` 构建 RAG，并完成自检查。
-11. 修改 `evaluation/test/src/test_evaluator.py`，完成本地评分 + AI 教学反馈生成全链路，并输出玩家得分 JSON 和教学反馈 JSON。
-12. 后续由游戏后端按同样方式接入 `main/src` 模块。
+1. 用更多医生资料扩充 `raw_docs/`，覆盖视网膜裂孔、格子样变性、糖网、静脉阻塞等场景。
+2. 在 `rag_builder.py` 中增加 LLM 结构化知识块能力，把规则切块升级为“原文页码 + 标题 + 标签 + 摘要 + 正文”的稳定知识单元。
+3. 优化 RAG query 生成，把最低得分项、扣分项、病例诊断和热力图异常区域映射到更稳定的 `score_tags`。
+4. 增加 RAG 命中报告，方便调试每次反馈引用了哪些知识块。
+5. 给 `build_rag.py` 增加更严格的回归测试：新增 PDF、修改 PDF、删除 PDF、二次运行跳过未变化文件。
+6. 后续由游戏后端按同样方式接入 `main/src` 模块。
 
 ## 10. 关键假设
 
-- 当前阶段只设计并记录方案，不修改 `ai_processor.py` 或测试代码。
+- 当前阶段已经开始实现并联调 `ai_processor.py`、`rag_builder.py`、`main.py` 和测试脚本。
 - 第一阶段 RAG 资料来源为医生提供的 PDF 电子书和 PDF 课件，不手写知识库，不放专家案例库。
 - AI 报告先服务当前视网膜裂孔样本，后续再扩展糖尿病视网膜病变、格子样变性等更多疾病类型。
 - 真实 API key、模型名、base_url 可以由上层从环境变量读取，但必须作为显式配置传入 `main/src`。

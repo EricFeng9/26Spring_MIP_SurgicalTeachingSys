@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "embedding_model": "text-embedding-3-small",
+  "files": {
+    "aao_torn_retina_laser_sealing.pdf": {
+      "sha256": "cce0b41c32ce86c1767da3789c733f2daa027458bb6bc82e5446e910169302b6",
+      "indexed_at": "2026-05-02T10:52:33.724806+00:00",
+      "chunk_count": 8,
+      "status": "indexed"
+    },
+    "abuhb_laser_photocoagulation_retinal_diseases.pdf": {
+      "sha256": "ab4a31a2d7e1f13c04b193603e3a8cc74217de6399a3a7a75d47d69c8f46b585",
+      "indexed_at": "2026-05-02T10:52:42.061043+00:00",
+      "chunk_count": 7,
+      "status": "indexed"
+    },
+    "nei_treating_diabetic_retinopathy.pdf": {
+      "sha256": "235c704ae67a27f9f34dcd9589fc50c6c122552af07becf9765713ed3f895fbc",
+      "indexed_at": "2026-05-02T10:52:55.519312+00:00",
+      "chunk_count": 11,
+      "status": "indexed"
+    }
+  }
+}

@@ -19,9 +19,9 @@
   "_total_score": "最终总分（百分制，扣除所有惩罚项后）",
   "dimensions": {
     "dim1_position": {
-      "score": 19.27,
+      "score": 19.7,
       "max_score": 35.0,
-      "iou": 0.5353,
+      "iou": 0.5441,
       "_iou": "玩家实际治疗面积与标准靶区的交并比",
       "eval_msg": "靶区覆盖基本完成，但仍存在漏打或越界。"
     },
@@ -80,7 +80,7 @@
         "r_value": {
           "score": 15.0,
           "max_score": 15.0,
-          "value": 2.0271,
+          "value": 1.9532,
           "_value": "最近邻离散指数R，>1.2为优"
         },
         "spacing_variance": {
