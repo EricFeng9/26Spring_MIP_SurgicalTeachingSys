@@ -103,8 +103,6 @@ def run_sample_test() -> tuple[int, str]:
         "perimeter_sample_count": 16,
         "min_envelope_shots": 3,
     }
-    if "player_coordinate_space" in inputs:
-        scoring_policy["player_coordinate_space"] = inputs["player_coordinate_space"]
     with open(runtime_config_path, "w", encoding="utf-8") as f:
         json.dump(runtime_config, f, ensure_ascii=False, indent=2)
 

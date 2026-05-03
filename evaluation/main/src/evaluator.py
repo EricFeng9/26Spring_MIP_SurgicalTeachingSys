@@ -77,30 +77,6 @@ def _normalize_shots(player_data: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized
 
 
-def _scale_shots_to_image_space(
-    shots: list[dict[str, Any]],
-    source_width: float,
-    source_height: float,
-    target_width: float,
-    target_height: float,
-) -> list[dict[str, Any]]:
-    if source_width <= 0 or source_height <= 0:
-        raise ValueError("player_coordinate_space.width/height 必须大于 0")
-    sx = target_width / source_width
-    sy = target_height / source_height
-    radius_scale = (sx + sy) / 2.0
-    scaled = []
-    for shot in shots:
-        new_shot = dict(shot)
-        pos = shot.get("pos", [None, None])
-        if isinstance(pos, list) and len(pos) >= 2:
-            new_shot["pos"] = [float(pos[0]) * sx, float(pos[1]) * sy]
-        if shot.get("radius_px") is not None:
-            new_shot["radius_px"] = float(shot["radius_px"]) * radius_scale
-        scaled.append(new_shot)
-    return scaled
-
-
 def _is_labelme_annotation(data: dict[str, Any]) -> bool:
     return isinstance(data.get("shapes"), list) and "target_zone" not in data
 
@@ -508,6 +484,58 @@ def _resolve_before_image_path(question_json_path: str) -> str | None:
         if os.path.exists(before_png):
             return before_png
     return None
+
+
+def _image_size(path: str) -> tuple[int, int]:
+    with Image.open(path) as img:
+        return img.size
+
+
+def _validate_unified_image_coordinate_space(
+    question_json_path: str,
+    original_question_data: dict[str, Any],
+    after_image_path: str,
+    before_image_path: str,
+    player_image_path: str,
+) -> tuple[int, int]:
+    after_size = _image_size(after_image_path)
+    before_size = _image_size(before_image_path)
+    player_size = _image_size(player_image_path)
+    if before_size != after_size:
+        raise ValueError(
+            f"before 图尺寸必须与 after/GT 图一致: before={before_size}, after={after_size}, GT={question_json_path}"
+        )
+    if player_size != after_size:
+        raise ValueError(
+            f"player 图尺寸必须与 after/GT 图一致: player={player_size}, after={after_size}, player={player_image_path}"
+        )
+
+    labelme_width = original_question_data.get("imageWidth")
+    labelme_height = original_question_data.get("imageHeight")
+    if labelme_width is not None or labelme_height is not None:
+        labelme_size = (int(labelme_width), int(labelme_height))
+        if labelme_size != after_size:
+            raise ValueError(
+                f"GT 标注声明尺寸必须与 after 图一致: labelme={labelme_size}, after={after_size}, GT={question_json_path}"
+            )
+    return after_size
+
+
+def _validate_player_shot_coordinate_space(shots: list[dict[str, Any]], image_size: tuple[int, int]) -> None:
+    width, height = image_size
+    for shot in shots:
+        pos = shot.get("pos")
+        if not isinstance(pos, list) or len(pos) < 2:
+            raise ValueError(f"玩家光斑缺少有效 pos: id={shot.get('id')}")
+        x = float(pos[0])
+        y = float(pos[1])
+        if not math.isfinite(x) or not math.isfinite(y):
+            raise ValueError(f"玩家光斑 pos 必须是有限数值: id={shot.get('id')}, pos={pos}")
+        if x < 0 or y < 0 or x >= width or y >= height:
+            raise ValueError(
+                f"玩家光斑 pos 超出统一图像坐标系: id={shot.get('id')}, pos={pos}, image_size={image_size}"
+            )
+        _shot_radius_px(shot)
 
 
 def _iter_polygons(geom):
@@ -1109,6 +1137,7 @@ def evaluate(
     try:
         # 1) 读取输入与配置
         question_data = _load_json(question_json_path)
+        original_question_data = question_data
         player_data = _load_json(player_json_path)
         vessel_mask = None
         if _is_labelme_annotation(question_data):
@@ -1128,8 +1157,11 @@ def evaluate(
         param_tolerance_abs = scoring_policy.get("param_tolerance_abs", {})
         config_tolerance_ratio = scoring_policy.get("param_tolerance_ratio", {})
         field_generation = scoring_policy.get("spatial_parameter_field", {})
-        player_coordinate_space = scoring_policy.get("player_coordinate_space", {})
         player_area_geometry = scoring_policy.get("player_area_geometry", {})
+        if "player_coordinate_space" in scoring_policy:
+            raise ValueError(
+                "正式评分不接受 player_coordinate_space。游戏侧必须保证 player.png、before.png、after.png、GT 标注图尺寸一致，player.json 坐标已经在同一坐标系。"
+            )
 
         sigma_good_sq = float(spacing_th.get("sigma_good_sq", 25.0))
         sigma_max_sq = float(spacing_th.get("sigma_max_sq", 100.0))
@@ -1137,7 +1169,9 @@ def evaluate(
         r_pass = float(spacing_th.get("r_value_pass", 0.8))
         points_per_overlap = float(penalty_rules.get("points_per_overlap", 1.0))
         spot_um_to_px = float(penalty_rules.get("spot_size_um_to_px", 0.03))
-        overlap_ratio = float(penalty_rules.get("overlap_distance_ratio", 1.0))
+        overlap_min_depth_ratio = float(penalty_rules.get("overlap_min_depth_ratio", 0.15))
+        if overlap_min_depth_ratio < 0:
+            raise ValueError("penalty_rules.overlap_min_depth_ratio 必须大于等于 0")
         field_sigma_px = float(field_generation.get("field_sigma_px", 25.0))
         heatmap_crop_padding_px = int(field_generation.get("heatmap_crop_padding_px", 40))
         dim2_tolerance_abs = {
@@ -1156,26 +1190,27 @@ def evaluate(
                     dim2_tolerance_ratio[key] = float(param_tolerance_ratio[key])
 
         base_image_path = _resolve_base_image_path(question_json_path, question_data)
-        if base_image_path and os.path.exists(base_image_path):
-            with Image.open(base_image_path) as base_img_for_size:
-                base_image_size = base_img_for_size.size
-        else:
-            base_image_size = None
+        player_heatmap_base_image_path = _resolve_player_image_path(player_json_path)
+        error_heatmap_base_image_path = _resolve_before_image_path(question_json_path)
+        if base_image_path is None:
+            raise FileNotFoundError("GT/after 底图不存在")
+        if player_heatmap_base_image_path is None:
+            raise FileNotFoundError("玩家/player 底图不存在")
+        if error_heatmap_base_image_path is None:
+            raise FileNotFoundError("误差/before 底图不存在")
+        unified_image_size = _validate_unified_image_coordinate_space(
+            question_json_path=question_json_path,
+            original_question_data=original_question_data,
+            after_image_path=base_image_path,
+            before_image_path=error_heatmap_base_image_path,
+            player_image_path=player_heatmap_base_image_path,
+        )
 
         # 2) 基础数据抽取
         all_shots = _normalize_shots(player_data)
         if not isinstance(all_shots, list):
             raise ValueError("player.shots 必须是数组")
-        if player_coordinate_space:
-            if base_image_size is None:
-                raise ValueError("配置了 player_coordinate_space，但无法确定 GT 原图尺寸")
-            all_shots = _scale_shots_to_image_space(
-                shots=all_shots,
-                source_width=float(player_coordinate_space["width"]),
-                source_height=float(player_coordinate_space["height"]),
-                target_width=float(base_image_size[0]),
-                target_height=float(base_image_size[1]),
-            )
+        _validate_player_shot_coordinate_space(all_shots, unified_image_size)
         valid_shots = [s for s in all_shots if not s.get("is_trial", False)]
         gt_all_shots = _normalize_shots(question_data)
         gt_valid_shots = [s for s in gt_all_shots if not s.get("is_trial", False)]
@@ -1241,7 +1276,11 @@ def evaluate(
                     continue
                 r2_px = _shot_radius_px(shot2)
                 dist = float(np.linalg.norm(np.array(pos, dtype=float) - np.array(pos2, dtype=float)))
-                if dist < (r1_px + r2_px) * overlap_ratio:
+                overlap_depth = r1_px + r2_px - dist
+                if overlap_depth <= 0:
+                    continue
+                overlap_depth_ratio = overlap_depth / min(r1_px, r2_px)
+                if overlap_depth_ratio >= overlap_min_depth_ratio:
                     overlap_count += 1
 
         # 4) 维度一：位置与范围（IoU）
@@ -1270,14 +1309,6 @@ def evaluate(
             dim1_eval_msg = "覆盖不足，存在明显漏打或偏离靶区。"
 
         gt_heatmap_base_image_path = base_image_path
-        player_heatmap_base_image_path = _resolve_player_image_path(player_json_path)
-        error_heatmap_base_image_path = _resolve_before_image_path(question_json_path)
-        if gt_heatmap_base_image_path is None:
-            raise FileNotFoundError("GT/after 底图不存在")
-        if player_heatmap_base_image_path is None:
-            raise FileNotFoundError("玩家/player 底图不存在")
-        if error_heatmap_base_image_path is None:
-            raise FileNotFoundError("误差/before 底图不存在")
 
         # 5) 维度二：激光参数空间适配度
         scoring_region = target_poly.intersection(player_area) if target_poly is not None and player_area is not None else None
@@ -1414,7 +1445,7 @@ def evaluate(
                 "overlap_penalty": {
                     "count": overlap_count,
                     "deducted_points": round(overlap_deduct, 2),
-                    "_desc": "光斑物理重叠次数及扣分",
+                    "_desc": "有效光斑重叠次数及扣分；重叠深度超过较小半径 15% 时计为一次",
                 },
                 "vessel_hit_penalty": {
                     "count": vessel_hit_count,

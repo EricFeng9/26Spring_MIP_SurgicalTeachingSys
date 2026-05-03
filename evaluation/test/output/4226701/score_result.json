@@ -97,7 +97,7 @@
     "overlap_penalty": {
       "count": 7,
       "deducted_points": 7.0,
-      "_desc": "光斑物理重叠次数及扣分"
+      "_desc": "有效光斑重叠次数及扣分；重叠深度超过较小半径 15% 时计为一次"
     },
     "vessel_hit_penalty": {
       "count": 0,

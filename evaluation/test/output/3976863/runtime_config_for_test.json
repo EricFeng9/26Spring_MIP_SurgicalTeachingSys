@@ -22,11 +22,11 @@
     },
     "penalty_rules": {
       "points_per_overlap": 1.0,
-      "_points_per_overlap": "每个光斑重叠扣除的分数",
+      "_points_per_overlap": "每个有效光斑重叠扣除的分数",
       "spot_size_um_to_px": 0.03,
       "_spot_size_um_to_px": "当 spot_size 单位为 um 时换算到像素的比例",
-      "overlap_distance_ratio": 1.0,
-      "_overlap_distance_ratio": "重叠判定阈值系数（1.0=中心距<平均直径）"
+      "overlap_min_depth_ratio": 0.15,
+      "_overlap_min_depth_ratio": "有效重叠判定阈值：重叠深度 / 较小光斑半径，0.15 表示超过较小半径 15% 才扣分"
     },
     "param_tolerance_ratio": {
       "power": 0.25,
@@ -44,10 +44,6 @@
       "concave_hull_ratio": 0.3,
       "perimeter_sample_count": 16,
       "min_envelope_shots": 3
-    },
-    "player_coordinate_space": {
-      "width": 5224,
-      "height": 4192
     }
   }
 }

@@ -21,15 +21,11 @@
     "manifest_path": "evaluation/test/rag/rag_manifest.json"
   },
   "inputs": {
-    "sample_root": "evaluation/test/sample_data/2604_sampledata/3976863",
-    "case_info_json_path": "evaluation/test/sample_data/2604_sampledata/3976863/3976863_introduction.json",
+    "sample_root": "evaluation/test/sample_data/2604_sampledata/4226701",
+    "case_info_json_path": "evaluation/test/sample_data/2604_sampledata/4226701/4226701_introduction.json",
     "rubric_md_path": "evaluation/docs/评分细则v5.md",
     "prompt_path": "evaluation/docs/llm_structured_scoring_report_prompt.txt",
-    "base_scoring_config_path": "evaluation/docs/config.json",
-    "player_coordinate_space": {
-      "width": 5224,
-      "height": 4192
-    }
+    "base_scoring_config_path": "evaluation/docs/config.json"
   },
   "outputs": {
     "base_dir": "evaluation/test/output"

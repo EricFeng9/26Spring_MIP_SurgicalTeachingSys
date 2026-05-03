@@ -15,7 +15,7 @@
   "_debug_visualization_paths": "可视化图路径：player_only / gt_only / combined",
   "debug_visualization_path": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_combined_overlay.png",
   "_debug_visualization_path": "combined 可视化图路径（兼容字段）",
-  "total_score": 15.6,
+  "total_score": 26.6,
   "_total_score": "最终总分（百分制，扣除所有惩罚项后）",
   "dimensions": {
     "dim1_position": {
@@ -95,9 +95,9 @@
   },
   "penalties": {
     "overlap_penalty": {
-      "count": 25,
-      "deducted_points": 25.0,
-      "_desc": "光斑物理重叠次数及扣分"
+      "count": 14,
+      "deducted_points": 14.0,
+      "_desc": "有效光斑重叠次数及扣分；重叠深度超过较小半径 15% 时计为一次"
     },
     "vessel_hit_penalty": {
       "count": 1,
