@@ -120,7 +120,7 @@ public class LaserTreatmentController : MonoBehaviour
     [SerializeField] private RectTransform circularViewportRect;
     [SerializeField] private RectTransform crosshairRect;
     [SerializeField] private Image crosshairImage;
-    [SerializeField] private float aimMoveSpeedNormalized = 0.18f;
+    [SerializeField] private float aimMoveSpeedNormalized = 0.08f;
     [SerializeField] private float fineAimSpeedMultiplier = 0.2f;
     [SerializeField] private Image shotFlashOverlay;
     [SerializeField] private float shotFlashPeakAlpha = 0.32f;
@@ -1706,80 +1706,74 @@ public class LaserTreatmentController : MonoBehaviour
             Mathf.RoundToInt(center.y - localOffsetPx.y));
     }
 
-    private void HandleAimInput()
+private void HandleAimInput()
     {
-        if (fovController == null || !fovController.IsReady)
-            return;
-
-        if (HasInteractiveUiFocus())
-            return;
+        if (fovController == null || !fovController.IsReady) return;
+        if (HasInteractiveUiFocus()) return;
 
         float horizontal = 0f;
         float vertical = 0f;
 
-        if (Input.GetKey(KeyCode.UpArrow))
-            vertical += 1f;
+        if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W)) vertical += 1f;
+        if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) vertical -= 1f;
+        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) horizontal -= 1f;
+        if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) horizontal += 1f;
 
-        if (Input.GetKey(KeyCode.DownArrow))
-            vertical -= 1f;
+        if (Mathf.Abs(horizontal) <= 0.001f && Mathf.Abs(vertical) <= 0.001f) return;
 
-        if (Input.GetKey(KeyCode.LeftArrow))
-            horizontal -= 1f;
+        float speedMultiplier = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) ? fineAimSpeedMultiplier : 1f;
 
-        if (Input.GetKey(KeyCode.RightArrow))
-            horizontal += 1f;
-
-        if (Mathf.Abs(horizontal) <= 0.001f && Mathf.Abs(vertical) <= 0.001f)
-            return;
-
-        float speedMultiplier = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-            ? fineAimSpeedMultiplier
-            : 1f;
-
+        // 【水平操作】保持不变
         if (Mathf.Abs(horizontal) > 0.001f)
             fovController.MoveHorizontalByDirection(horizontal, speedMultiplier);
 
+        // 【垂直操作】
         if (Mathf.Abs(vertical) > 0.001f)
         {
-            Vector2 viewportDiameter = GetViewportDiameter();
-            float moveDistance = aimMoveSpeedNormalized * speedMultiplier * Time.deltaTime * Mathf.Min(viewportDiameter.x, viewportDiameter.y);
-            Vector2 candidate = GetAimAnchoredPosition() + new Vector2(0f, vertical) * moveDistance;
-            Vector2 clamped = ClampAimAnchoredPositionToLitRegion(candidate);
-            aimOffsetNormalized.y = viewportDiameter.y <= 0.001f
-                ? 0f
-                : Mathf.Clamp(clamped.y / viewportDiameter.y, -0.5f, 0.5f);
+            // 【核心数学换算】：让准星的 UI 移动比例 = 底层像素速度 / 当前视野像素直径
+            // 这保证了无论你换什么接触镜，放大倍率是多少，准星和图像的视觉速度绝对 1:1 相等！
+            float exactSyncSpeed = fovController.MoveSpeedPxPerSecond / Mathf.Max(1f, fovController.CurrentDiameterPx);
+            float moveDistance = exactSyncSpeed * speedMultiplier * Time.deltaTime;
+
+            if ((vertical > 0 && aimOffsetNormalized.y < -0.001f) || (vertical < 0 && aimOffsetNormalized.y > 0.001f))
+            {
+                aimOffsetNormalized.y += vertical * moveDistance;
+                if ((vertical > 0 && aimOffsetNormalized.y > 0) || (vertical < 0 && aimOffsetNormalized.y < 0))
+                {
+                    aimOffsetNormalized.y = 0f;
+                }
+            }
+            else
+            {
+                Vector2 centerBefore = fovController.CurrentCenterPx;
+                fovController.MoveVerticalByDirection(-vertical, speedMultiplier);
+                Vector2 centerAfter = fovController.CurrentCenterPx;
+
+                if (Mathf.Abs(centerAfter.y - centerBefore.y) < 0.01f)
+                {
+                    aimOffsetNormalized.y += vertical * moveDistance;
+                }
+            }
+
+            aimOffsetNormalized.y = Mathf.Clamp(aimOffsetNormalized.y, -0.5f, 0.5f);
+
+            if (slitLamp != null)
+            {
+                slitLamp.SetSlitVerticalOffset(aimOffsetNormalized.y);
+            }
         }
     }
-
-    private Vector2 ClampAimAnchoredPositionToLitRegion(Vector2 anchoredPosition)
+private Vector2 ClampAimAnchoredPositionToLitRegion(Vector2 anchoredPosition)
     {
         Vector2 viewportDiameter = GetViewportDiameter();
         if (viewportDiameter.x <= 0.001f || viewportDiameter.y <= 0.001f)
             return Vector2.zero;
 
         float viewportRadius = Mathf.Min(viewportDiameter.x, viewportDiameter.y) * 0.5f;
-        if (viewportRadius <= 0.001f)
-            return Vector2.zero;
-
-        float minX = -viewportRadius;
-        float maxX = viewportRadius;
-        if (slitLamp != null)
-        {
-            Vector2 slitBounds = slitLamp.GetReticleBoundsNormalized(reticleFadeZoneFraction);
-            minX = Mathf.Max(minX, (slitBounds.x - 0.5f) * viewportDiameter.x);
-            maxX = Mathf.Min(maxX, (slitBounds.y - 0.5f) * viewportDiameter.x);
-        }
-
-        if (minX > maxX)
-        {
-            float mid = (minX + maxX) * 0.5f;
-            minX = mid;
-            maxX = mid;
-        }
-
         Vector2 clamped = anchoredPosition;
-        clamped.x = Mathf.Clamp(clamped.x, minX, maxX);
 
+        // 修复：移除对 X 的错误裁剪，完全信任光带的中心 X 坐标
+        // 仅限制 Y 轴，确保准星不能上下飞出圆形的边缘
         float radialYLimit = Mathf.Sqrt(Mathf.Max(0f, viewportRadius * viewportRadius - clamped.x * clamped.x));
         clamped.y = Mathf.Clamp(clamped.y, -radialYLimit, radialYLimit);
 

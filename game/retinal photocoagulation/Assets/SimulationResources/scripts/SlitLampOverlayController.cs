@@ -15,27 +15,36 @@ public class SlitLampOverlayController : MonoBehaviour
     [SerializeField] private Image slitCoreImage;      // 可选
 
     [Header("Slit")]
-    [SerializeField, Range(0.02f, 0.8f)] private float slitWidthNormalized = 0.18f;
+    [SerializeField, Range(0.001f, 0.8f)] private float slitWidthNormalized = 0.18f; // 把 0.02f 改为 0.001f
     [SerializeField, Range(0f, 1f)] private float slitCenterXNormalized = 0.5f;
 
     [Header("Visual")]
     [SerializeField, Range(0f, 1f)] private float sideDarkAlpha = 1.0f;
     [SerializeField] private bool showSlitCore = true;
     [SerializeField, Range(0f, 1f)] private float slitCoreAlpha = 0.10f;
-
+    [SerializeField] private RectTransform topBlack;
+    [SerializeField] private RectTransform bottomBlack;
+    [SerializeField] private Image topBlackImage;
+    [SerializeField] private Image bottomBlackImage;
     private bool initializedFromTint;
+private float slitVerticalOffsetNormalized = 0f;
 
+    public void SetSlitVerticalOffset(float yOffsetNormalized)
+    {
+        slitVerticalOffsetNormalized = yOffsetNormalized;
+        Refresh();
+    }
     private void Start()
     {
         EnsureTintReferences();
-        InitializeFromTintRect();
+        // InitializeFromTintRect();
         Refresh();
     }
 
     private void OnRectTransformDimensionsChange()
     {
         EnsureTintReferences();
-        InitializeFromTintRect();
+        // InitializeFromTintRect();
         Refresh();
     }
 
@@ -48,7 +57,7 @@ public class SlitLampOverlayController : MonoBehaviour
 
     public void SetSlitWidthNormalized(float value)
     {
-        slitWidthNormalized = Mathf.Clamp(value, 0.02f, 0.8f);
+        slitWidthNormalized = Mathf.Clamp(value, 0.001f, 0.8f);
         Refresh();
     }
 
@@ -97,27 +106,23 @@ public class SlitLampOverlayController : MonoBehaviour
         Refresh();
     }
 
-    public void Refresh()
+public void Refresh()
     {
         EnsureTintReferences();
 
-        if (overlayRoot == null || leftBlack == null || rightBlack == null)
-            return;
+        if (overlayRoot == null || leftBlack == null || rightBlack == null) return;
 
         float w = overlayRoot.rect.width;
         float h = overlayRoot.rect.height;
-        if (w <= 0f || h <= 0f)
-            return;
+        if (w <= 0f || h <= 0f) return;
 
         float slitWidth = w * slitWidthNormalized;
         float slitCenterX = w * slitCenterXNormalized;
 
-        float slitLeft = slitCenterX - slitWidth * 0.5f;
-        float slitRight = slitCenterX + slitWidth * 0.5f;
+        float slitLeft = Mathf.Clamp(slitCenterX - slitWidth * 0.5f, 0f, w);
+        float slitRight = Mathf.Clamp(slitCenterX + slitWidth * 0.5f, 0f, w);
 
-        slitLeft = Mathf.Clamp(slitLeft, 0f, w);
-        slitRight = Mathf.Clamp(slitRight, 0f, w);
-
+        // --- 1. 左右黑布（保持原样） ---
         leftBlack.anchorMin = new Vector2(0f, 0f);
         leftBlack.anchorMax = new Vector2(0f, 1f);
         leftBlack.pivot = new Vector2(0f, 0.5f);
@@ -130,20 +135,41 @@ public class SlitLampOverlayController : MonoBehaviour
         rightBlack.anchoredPosition = Vector2.zero;
         rightBlack.sizeDelta = new Vector2(w - slitRight, 0f);
 
-        if (leftBlackImage != null)
+        if (leftBlackImage != null) { Color c = leftBlackImage.color; c.a = sideDarkAlpha; leftBlackImage.color = c; }
+        if (rightBlackImage != null){ Color c = rightBlackImage.color; c.a = sideDarkAlpha; rightBlackImage.color = c; }
+
+        // --- 2. 计算变黑的像素高度 ---
+        float fadeMultiplier = 1.0f; // 遮黑倍率，可微调
+        float darkPixels = Mathf.Abs(slitVerticalOffsetNormalized) * fadeMultiplier * h;
+        float bottomChop = slitVerticalOffsetNormalized > 0 ? darkPixels : 0f;
+        float topChop = slitVerticalOffsetNormalized < 0 ? darkPixels : 0f;
+
+        // --- 3. 【你的绝妙点子】：上下黑布拉伸遮挡 ---
+        if (topBlack != null)
         {
-            Color c = leftBlackImage.color;
-            c.r = 0f; c.g = 0f; c.b = 0f; c.a = sideDarkAlpha;
-            leftBlackImage.color = c;
+            topBlack.gameObject.SetActive(topChop > 0.001f);
+            // 贴紧屏幕最上方，向下延伸
+            topBlack.anchorMin = new Vector2(0f, 1f);
+            topBlack.anchorMax = new Vector2(1f, 1f);
+            topBlack.pivot = new Vector2(0.5f, 1f);
+            topBlack.anchoredPosition = Vector2.zero;
+            topBlack.sizeDelta = new Vector2(0f, topChop); // 高度拉伸
+            if (topBlackImage != null) { Color c = topBlackImage.color; c.a = sideDarkAlpha; topBlackImage.color = c; }
         }
 
-        if (rightBlackImage != null)
+        if (bottomBlack != null)
         {
-            Color c = rightBlackImage.color;
-            c.r = 0f; c.g = 0f; c.b = 0f; c.a = sideDarkAlpha;
-            rightBlackImage.color = c;
+            bottomBlack.gameObject.SetActive(bottomChop > 0.001f);
+            // 贴紧屏幕最下方，向上延伸
+            bottomBlack.anchorMin = new Vector2(0f, 0f);
+            bottomBlack.anchorMax = new Vector2(1f, 0f);
+            bottomBlack.pivot = new Vector2(0.5f, 0f);
+            bottomBlack.anchoredPosition = Vector2.zero;
+            bottomBlack.sizeDelta = new Vector2(0f, bottomChop); // 高度拉伸
+            if (bottomBlackImage != null) { Color c = bottomBlackImage.color; c.a = sideDarkAlpha; bottomBlackImage.color = c; }
         }
 
+        // --- 4. 恢复光带本身完整的高度（不再尝试裁剪它本身） ---
         if (slitTint != null)
         {
             slitTint.gameObject.SetActive(true);
@@ -151,19 +177,14 @@ public class SlitLampOverlayController : MonoBehaviour
             slitTint.anchorMax = new Vector2(0f, 1f);
             slitTint.pivot = new Vector2(0f, 0.5f);
             slitTint.anchoredPosition = new Vector2(slitLeft, 0f);
-            slitTint.sizeDelta = new Vector2(slitWidth, 0f);
-
-            if (slitTintImage != null)
-            {
-                Color tintColor = slitTintImage.color;
-                slitTintImage.color = tintColor;
-            }
+            slitTint.sizeDelta = new Vector2(slitWidth, 0f); // 0 表示高度占满
+            slitTint.offsetMin = new Vector2(slitTint.offsetMin.x, 0f);
+            slitTint.offsetMax = new Vector2(slitTint.offsetMax.x, 0f);
         }
 
         if (slitCore != null)
         {
             slitCore.gameObject.SetActive(showSlitCore);
-
             if (showSlitCore)
             {
                 slitCore.anchorMin = new Vector2(0f, 0f);
@@ -171,33 +192,44 @@ public class SlitLampOverlayController : MonoBehaviour
                 slitCore.pivot = new Vector2(0f, 0.5f);
                 slitCore.anchoredPosition = new Vector2(slitLeft, 0f);
                 slitCore.sizeDelta = new Vector2(slitWidth, 0f);
+                slitCore.offsetMin = new Vector2(slitCore.offsetMin.x, 0f);
+                slitCore.offsetMax = new Vector2(slitCore.offsetMax.x, 0f);
 
                 if (slitCoreImage != null)
                 {
                     Color c = slitCoreImage.color;
-                    c.r = 1f; c.g = 1f; c.b = 1f; c.a = slitCoreAlpha;
+                    c.a = slitCoreAlpha;
                     slitCoreImage.color = c;
                 }
             }
         }
     }
 
-    private void EnsureTintReferences()
+private void EnsureTintReferences()
     {
-        if (overlayRoot == null)
-            return;
+        if (overlayRoot == null) return;
 
         if (slitTint == null)
         {
             Transform tintTransform = overlayRoot.Find("Image_SlitTint");
-            if (tintTransform != null)
-                slitTint = tintTransform as RectTransform;
+            if (tintTransform != null) slitTint = tintTransform as RectTransform;
         }
+        if (slitTintImage == null && slitTint != null) slitTintImage = slitTint.GetComponent<Image>();
 
-        if (slitTintImage == null && slitTint != null)
-            slitTintImage = slitTint.GetComponent<Image>();
+        // --- 新增：自动寻找上下黑布 ---
+        if (topBlack == null)
+        {
+            Transform t = overlayRoot.Find("Image_TopBlack");
+            if (t != null) topBlack = t as RectTransform;
+        }
+        if (bottomBlack == null)
+        {
+            Transform t = overlayRoot.Find("Image_BottomBlack");
+            if (t != null) bottomBlack = t as RectTransform;
+        }
+        if (topBlackImage == null && topBlack != null) topBlackImage = topBlack.GetComponent<Image>();
+        if (bottomBlackImage == null && bottomBlack != null) bottomBlackImage = bottomBlack.GetComponent<Image>();
     }
-
     private void InitializeFromTintRect()
     {
         if (initializedFromTint || overlayRoot == null || slitTint == null)

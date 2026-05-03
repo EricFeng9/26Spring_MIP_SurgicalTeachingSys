@@ -87,7 +87,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
 
     private bool isReady;
 
-    private Texture2D focusBlurTexture;
+    // private Texture2D focusBlurTexture;
     private float focusNormalized;
     private bool isCalibrationMode;
     private bool hasCalibrationStartPoint;
@@ -109,7 +109,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
     public float CalibratedDiscDiameterUm => calibratedDiscDiameterUm;
 
     public event Action<float> DiscCalibrationLineCompleted;
-
+    public float MoveSpeedPxPerSecond => moveSpeedPxPerSecond;
     private void Awake()
     {
         SetupLensDropdown();
@@ -127,11 +127,11 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
 
     private void OnDestroy()
     {
-        if (focusBlurTexture != null)
-        {
-            Destroy(focusBlurTexture);
-            focusBlurTexture = null;
-        }
+        // if (focusBlurTexture != null)
+        // {
+        //     Destroy(focusBlurTexture);
+        //     focusBlurTexture = null;
+        // }
     }
 
     private void Update()
@@ -297,17 +297,17 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
             fundusRawImage.texture = sourceTexture;
 
         // 重新生成模糊图
-        if (focusBlurTexture != null)
-        {
-            Destroy(focusBlurTexture);
-            focusBlurTexture = null;
-        }
+        // if (focusBlurTexture != null)
+        // {
+        //     Destroy(focusBlurTexture);
+        //     focusBlurTexture = null;
+        // }
 
-        if (focusBlurRawImage != null)
-        {
-            focusBlurTexture = CreateBlurredTexture(sourceTexture, focusBlurRadius);
-            focusBlurRawImage.texture = focusBlurTexture;
-        }
+        // if (focusBlurRawImage != null)
+        // {
+        //     focusBlurTexture = CreateBlurredTexture(sourceTexture, focusBlurRadius);
+        //     focusBlurRawImage.texture = focusBlurTexture;
+        // }
 
         // 新图加载后默认先模糊
         focusNormalized = initialFocusNormalized;
@@ -410,14 +410,14 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         RefreshFovOnly();
     }
 
-    public void SetLensPresetFromDropdown(int dropdownIndex)
-    {
-        if (dropdownIndex < 0 || dropdownIndex > 3)
-            return;
+    // public void SetLensPresetFromDropdown(int dropdownIndex)
+    // {
+    //     if (dropdownIndex < 0 || dropdownIndex > 3)
+    //         return;
 
-        lensPreset = (WorkingLensPreset)dropdownIndex;
-        RefreshFovOnly();
-    }
+    //     lensPreset = (WorkingLensPreset)dropdownIndex;
+    //     RefreshFovOnly();
+    // }
 
     public void SetCameraPreset(CameraPreset preset)
     {
@@ -475,7 +475,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         RefreshDebugText();
     }
 
-    private void SetupLensDropdown()
+private void SetupLensDropdown()
     {
         if (lensDropdown == null)
             return;
@@ -483,12 +483,17 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         lensDropdown.onValueChanged.RemoveAllListeners();
         lensDropdown.options.Clear();
 
-        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Goldmann±38°"));
-        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Krieger±41°"));
-        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Panfundoscope±70°"));
-        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Mainster±60°"));
+        // 移除 70° 镜头，仅保留三个选项
+        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Goldmann±38°")); // Index 0
+        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Krieger±41°"));  // Index 1
+        lensDropdown.options.Add(new TMP_Dropdown.OptionData("Mainster±60°")); // Index 2
 
-        lensDropdown.value = (int)lensPreset;
+        // 手动映射枚举到新的下拉索引，避免使用 (int)lensPreset 导致越界
+        if (lensPreset == WorkingLensPreset.GoldmannWorking38) lensDropdown.value = 0;
+        else if (lensPreset == WorkingLensPreset.KriegerWorking41) lensDropdown.value = 1;
+        else if (lensPreset == WorkingLensPreset.MainsterWorking60) lensDropdown.value = 2;
+        else lensDropdown.value = 0; // 如果 Inspector 里默认选了 70°，则安全回退到 38°
+
         lensDropdown.RefreshShownValue();
         lensDropdown.onValueChanged.AddListener(SetLensPresetFromDropdown);
     }
@@ -499,9 +504,28 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
             return;
 
         lensDropdown.onValueChanged.RemoveListener(SetLensPresetFromDropdown);
-        lensDropdown.value = (int)lensPreset;
+        
+        // 同样替换掉强制转换逻辑
+        if (lensPreset == WorkingLensPreset.GoldmannWorking38) lensDropdown.value = 0;
+        else if (lensPreset == WorkingLensPreset.KriegerWorking41) lensDropdown.value = 1;
+        else if (lensPreset == WorkingLensPreset.MainsterWorking60) lensDropdown.value = 2;
+        else lensDropdown.value = 0;
+
         lensDropdown.RefreshShownValue();
         lensDropdown.onValueChanged.AddListener(SetLensPresetFromDropdown);
+    }
+
+    public void SetLensPresetFromDropdown(int dropdownIndex)
+    {
+        // 根据新的 UI 索引反向映射回枚举
+        switch (dropdownIndex)
+        {
+            case 0: lensPreset = WorkingLensPreset.GoldmannWorking38; break;
+            case 1: lensPreset = WorkingLensPreset.KriegerWorking41; break;
+            case 2: lensPreset = WorkingLensPreset.MainsterWorking60; break;
+            default: lensPreset = WorkingLensPreset.GoldmannWorking38; break;
+        }
+        RefreshFovOnly();
     }
 
     private void BuildNonBlackMask()
@@ -935,72 +959,72 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
             calibrationPreviewEndMarker.gameObject.SetActive(visible);
     }
 
-    private Texture2D CreateBlurredTexture(Texture2D source, int radius)
-    {
-        if (source == null)
-            return null;
+    // private Texture2D CreateBlurredTexture(Texture2D source, int radius)
+    // {
+    //     if (source == null)
+    //         return null;
 
-        Color[] src = source.GetPixels();
-        int w = source.width;
-        int h = source.height;
+    //     Color[] src = source.GetPixels();
+    //     int w = source.width;
+    //     int h = source.height;
 
-        Color[] temp = new Color[src.Length];
-        Color[] dst = new Color[src.Length];
+    //     Color[] temp = new Color[src.Length];
+    //     Color[] dst = new Color[src.Length];
 
-        BoxBlurHorizontal(src, temp, w, h, radius);
-        BoxBlurVertical(temp, dst, w, h, radius);
+    //     BoxBlurHorizontal(src, temp, w, h, radius);
+    //     BoxBlurVertical(temp, dst, w, h, radius);
 
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.SetPixels(dst);
-        tex.Apply();
-        return tex;
-    }
+    //     Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+    //     tex.SetPixels(dst);
+    //     tex.Apply();
+    //     return tex;
+    // }
 
-    private void BoxBlurHorizontal(Color[] src, Color[] dst, int w, int h, int radius)
-    {
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                Color sum = Color.black;
-                int count = 0;
+    // private void BoxBlurHorizontal(Color[] src, Color[] dst, int w, int h, int radius)
+    // {
+    //     for (int y = 0; y < h; y++)
+    //     {
+    //         for (int x = 0; x < w; x++)
+    //         {
+    //             Color sum = Color.black;
+    //             int count = 0;
 
-                int xmin = Mathf.Max(0, x - radius);
-                int xmax = Mathf.Min(w - 1, x + radius);
+    //             int xmin = Mathf.Max(0, x - radius);
+    //             int xmax = Mathf.Min(w - 1, x + radius);
 
-                for (int xx = xmin; xx <= xmax; xx++)
-                {
-                    sum += src[y * w + xx];
-                    count++;
-                }
+    //             for (int xx = xmin; xx <= xmax; xx++)
+    //             {
+    //                 sum += src[y * w + xx];
+    //                 count++;
+    //             }
 
-                dst[y * w + x] = sum / count;
-            }
-        }
-    }
+    //             dst[y * w + x] = sum / count;
+    //         }
+    //     }
+    // }
 
-    private void BoxBlurVertical(Color[] src, Color[] dst, int w, int h, int radius)
-    {
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                Color sum = Color.black;
-                int count = 0;
+    // private void BoxBlurVertical(Color[] src, Color[] dst, int w, int h, int radius)
+    // {
+    //     for (int y = 0; y < h; y++)
+    //     {
+    //         for (int x = 0; x < w; x++)
+    //         {
+    //             Color sum = Color.black;
+    //             int count = 0;
 
-                int ymin = Mathf.Max(0, y - radius);
-                int ymax = Mathf.Min(h - 1, y + radius);
+    //             int ymin = Mathf.Max(0, y - radius);
+    //             int ymax = Mathf.Min(h - 1, y + radius);
 
-                for (int yy = ymin; yy <= ymax; yy++)
-                {
-                    sum += src[yy * w + x];
-                    count++;
-                }
+    //             for (int yy = ymin; yy <= ymax; yy++)
+    //             {
+    //                 sum += src[yy * w + x];
+    //                 count++;
+    //             }
 
-                dst[y * w + x] = sum / count;
-            }
-        }
-    }
+    //             dst[y * w + x] = sum / count;
+    //         }
+    //     }
+    // }
 
     private bool[] DilateMask(bool[] src, int w, int h, int radius)
     {
@@ -1156,16 +1180,32 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         }
     }
 
-    private float SphericalAreaRatio(float thetaGHalfDeg, float thetaIHalfDeg)
+private float SphericalAreaRatio(float thetaGHalfDeg, float thetaIHalfDeg)
     {
-        float tg = thetaGHalfDeg * Mathf.Deg2Rad;
-        float ti = thetaIHalfDeg * Mathf.Deg2Rad;
+        // --- 引入李斯丁(Listing)简约眼模型物理参数 ---
+        float R = 11.39f; // 眼球几何半径 mm
+        float d = 5.73f;  // 角膜顶点到结点N的距离 mm
+        float ratio_Rd = (R - d) / R; // 约等于 0.4969
 
-        float denom = 1f - Mathf.Cos(ti);
+        // 1. 将角度转换为弧度 (此时传入的参数已经是正确的半场角)
+        // thetaGHalfDeg: 接触镜的半场角 (如 Goldmann 38°, Panfundoscope 70°)
+        // thetaIHalfDeg: 照相机的半场角 (如 200°全角 / 2 = 100°)
+        float theta = thetaGHalfDeg * Mathf.Deg2Rad;       
+        float phi_Camera = thetaIHalfDeg * Mathf.Deg2Rad;  
+
+        // 2. 核心修正：利用几何公式计算接触镜在视网膜上对应的真实球心半角 phi
+        // 公式: phi = theta + arcsin((R-d)/R * sin(theta))
+        float phi_Lens = theta + Mathf.Asin(ratio_Rd * Mathf.Sin(theta));
+
+        // 3. 计算球冠面积之比
+        // 照相机拍摄到的总视网膜表面积对应的分母 (1 - cos(phi_Camera))
+        float denom = 1f - Mathf.Cos(phi_Camera);
         if (Mathf.Abs(denom) < 1e-6f)
             return 0f;
 
-        float p = (1f - Mathf.Cos(tg)) / denom;
+        // 医生视野表面积与照相机表面积之比
+        float p = (1f - Mathf.Cos(phi_Lens)) / denom;
+        
         return Mathf.Clamp01(p);
     }
 
