@@ -27,8 +27,8 @@
     "prompt_path": "evaluation/docs/llm_structured_scoring_report_prompt.txt",
     "base_scoring_config_path": "evaluation/docs/config.json",
     "player_coordinate_space": {
-      "width": 2048,
-      "height": 2021
+      "width": 5280,
+      "height": 5210
     }
   },
   "outputs": {

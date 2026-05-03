@@ -39,8 +39,8 @@
       "heatmap_crop_padding_px": 40
     },
     "player_coordinate_space": {
-      "width": 2048,
-      "height": 2021
+      "width": 5280,
+      "height": 5210
     }
   }
 }

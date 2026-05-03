@@ -1,5 +1,5 @@
 {
-  "session_id": "SESS_20260502_171328",
+  "session_id": "SESS_20260503_215534",
   "_session_id": "关联的玩家操作会话ID",
   "task_id": "T001_RP_Standard",
   "_task_id": "关联的题目ID",
@@ -15,15 +15,15 @@
   "_debug_visualization_paths": "可视化图路径：player_only / gt_only / combined",
   "debug_visualization_path": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/4226701/score_result_combined_overlay.png",
   "_debug_visualization_path": "combined 可视化图路径（兼容字段）",
-  "total_score": 0.0,
+  "total_score": 43.0,
   "_total_score": "最终总分（百分制，扣除所有惩罚项后）",
   "dimensions": {
     "dim1_position": {
-      "score": 19.7,
+      "score": 0.0,
       "max_score": 35.0,
-      "iou": 0.5441,
+      "iou": 0.3052,
       "_iou": "玩家实际治疗面积与标准靶区的交并比",
-      "eval_msg": "靶区覆盖基本完成，但仍存在漏打或越界。"
+      "eval_msg": "覆盖不足，存在明显漏打或偏离靶区。"
     },
     "dim2_energy": {
       "name": "激光参数空间适配度",
@@ -80,13 +80,13 @@
         "r_value": {
           "score": 15.0,
           "max_score": 15.0,
-          "value": 1.9532,
+          "value": 1.7308,
           "_value": "最近邻离散指数R，>1.2为优"
         },
         "spacing_variance": {
           "score": 0.0,
           "max_score": 15.0,
-          "value": 275.3341,
+          "value": 397.4583,
           "_value": "光斑间距方差，越小手越稳"
         }
       },
@@ -95,13 +95,13 @@
   },
   "penalties": {
     "overlap_penalty": {
-      "count": 130,
-      "deducted_points": 130.0,
+      "count": 7,
+      "deducted_points": 7.0,
       "_desc": "光斑物理重叠次数及扣分"
     },
     "vessel_hit_penalty": {
-      "count": 2,
-      "deducted_points": 10.0,
+      "count": 0,
+      "deducted_points": 0.0,
       "_desc": "触碰视网膜大血管次数及扣分（每处扣5分，从维1中扣除，此处仅作记录和最终汇总扣除）"
     }
   }
