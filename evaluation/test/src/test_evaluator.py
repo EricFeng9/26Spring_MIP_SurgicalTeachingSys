@@ -96,6 +96,13 @@ def run_sample_test() -> tuple[int, str]:
         "field_sigma_px": 25.0,
         "heatmap_crop_padding_px": 40,
     }
+    scoring_policy["player_area_geometry"] = {
+        "mode": "clustered_disk_concave_envelope",
+        "cluster_distance_ratio": 3.5,
+        "concave_hull_ratio": 0.3,
+        "perimeter_sample_count": 16,
+        "min_envelope_shots": 3,
+    }
     if "player_coordinate_space" in inputs:
         scoring_policy["player_coordinate_space"] = inputs["player_coordinate_space"]
     with open(runtime_config_path, "w", encoding="utf-8") as f:

@@ -375,9 +375,10 @@ def _best_concave_hull(points: list[tuple[float, float]], prefer_hole: bool, rat
 
 def _build_player_treatment_area(
     valid_shots: list[dict[str, Any]],
+    player_area_geometry: dict[str, Any],
 ):
-    """用每个有效光斑的 radius_px 构建玩家实际治疗区域；当前按半径解释。"""
-    disks = []
+    """用光斑外缘点生成玩家治疗区域包络；radius_px 按半径解释。"""
+    shot_items = []
     for shot in valid_shots:
         pos = shot.get("pos", [None, None])
         if not isinstance(pos, list) or len(pos) < 2:
@@ -387,16 +388,80 @@ def _build_player_treatment_area(
         radius_px = float(shot["radius_px"])
         if radius_px <= 0:
             raise ValueError(f"有效光斑 radius_px 必须大于 0: id={shot.get('id')}")
-        disks.append(Point(float(pos[0]), float(pos[1])).buffer(radius_px, resolution=24))
+        shot_items.append((float(pos[0]), float(pos[1]), radius_px))
 
-    if not disks:
+    if not shot_items:
         return None
-    area = unary_union(disks)
+    median_radius = float(np.median(np.array([r for _, _, r in shot_items], dtype=float)))
+    cluster_distance = median_radius * float(player_area_geometry.get("cluster_distance_ratio", 3.5))
+    perimeter_sample_count = int(player_area_geometry.get("perimeter_sample_count", 16))
+    concave_hull_ratio = float(player_area_geometry.get("concave_hull_ratio", 0.3))
+    min_envelope_shots = int(player_area_geometry.get("min_envelope_shots", 3))
+
+    components = []
+    for cluster in _cluster_shot_items(shot_items, cluster_distance):
+        if len(cluster) < min_envelope_shots:
+            components.append(unary_union([Point(x, y).buffer(r, resolution=24) for x, y, r in cluster]))
+            continue
+        perimeter_points = _sample_cluster_perimeter_points(cluster, perimeter_sample_count)
+        envelope = shapely.concave_hull(MultiPoint(perimeter_points), ratio=concave_hull_ratio, allow_holes=True)
+        if not envelope.is_valid or envelope.area <= 0:
+            raise ValueError("玩家治疗簇包络生成了无效几何")
+        components.append(envelope)
+
+    area = unary_union(components)
     if not area.is_valid:
-        raise ValueError("玩家光斑圆盘包络生成了无效几何")
+        raise ValueError("玩家治疗区域包络生成了无效几何")
     if area.area <= 0:
-        raise ValueError("玩家光斑圆盘包络面积为 0")
+        raise ValueError("玩家治疗区域包络面积为 0")
     return area
+
+
+def _cluster_shot_items(
+    shot_items: list[tuple[float, float, float]],
+    cluster_distance: float,
+) -> list[list[tuple[float, float, float]]]:
+    if cluster_distance <= 0:
+        raise ValueError("player_area_geometry.cluster_distance_ratio 必须大于 0")
+
+    parent = list(range(len(shot_items)))
+
+    def find(idx: int) -> int:
+        while parent[idx] != idx:
+            parent[idx] = parent[parent[idx]]
+            idx = parent[idx]
+        return idx
+
+    def union(a: int, b: int) -> None:
+        root_a = find(a)
+        root_b = find(b)
+        if root_a != root_b:
+            parent[root_b] = root_a
+
+    for i, (x1, y1, _) in enumerate(shot_items):
+        for j in range(i + 1, len(shot_items)):
+            x2, y2, _ = shot_items[j]
+            if math.hypot(x1 - x2, y1 - y2) <= cluster_distance:
+                union(i, j)
+
+    clusters: dict[int, list[tuple[float, float, float]]] = {}
+    for idx, item in enumerate(shot_items):
+        clusters.setdefault(find(idx), []).append(item)
+    return list(clusters.values())
+
+
+def _sample_cluster_perimeter_points(
+    cluster: list[tuple[float, float, float]],
+    sample_count: int,
+) -> list[tuple[float, float]]:
+    if sample_count < 8:
+        raise ValueError("player_area_geometry.perimeter_sample_count 至少为 8")
+    points = []
+    for x, y, radius in cluster:
+        for idx in range(sample_count):
+            angle = 2.0 * math.pi * idx / sample_count
+            points.append((x + math.cos(angle) * radius, y + math.sin(angle) * radius))
+    return points
 
 
 def _resolve_base_image_path(question_json_path: str, question_data: dict[str, Any]) -> str | None:
@@ -486,7 +551,7 @@ def _draw_legend(draw: ImageDraw.ImageDraw, show_player: bool, show_gt: bool) ->
 
 def _draw_player_layer(draw: ImageDraw.ImageDraw, player_area, valid_shots: list[dict[str, Any]]) -> None:
     for poly in _iter_polygons(player_area):
-        _draw_shapely_polygon(draw, poly, fill=(255, 140, 40, 90), outline=(255, 90, 0, 230))
+        _draw_shapely_polygon(draw, poly, fill=(255, 140, 40, 55), outline=(255, 90, 0, 220))
     for shot in valid_shots:
         pos = shot.get("pos", [None, None])
         if not isinstance(pos, list) or len(pos) < 2:
@@ -499,7 +564,12 @@ def _draw_player_layer(draw: ImageDraw.ImageDraw, player_area, valid_shots: list
 
 def _draw_gt_layer(draw: ImageDraw.ImageDraw, target_poly) -> None:
     for poly in _iter_polygons(target_poly):
-        _draw_shapely_polygon(draw, poly, fill=(30, 200, 80, 80), outline=(20, 150, 60, 220))
+        _draw_shapely_polygon(draw, poly, fill=(30, 200, 80, 55), outline=(20, 180, 70, 220))
+
+
+def _draw_gt_layer_on_top(draw: ImageDraw.ImageDraw, target_poly) -> None:
+    for poly in _iter_polygons(target_poly):
+        _draw_shapely_polygon(draw, poly, fill=(30, 220, 90, 65), outline=(0, 255, 80, 240))
 
 
 def _save_overlay_visualization(
@@ -560,8 +630,8 @@ def _save_overlay_visualization(
     save_layer(
         combined_base_image_path,
         lambda draw: (
-            _draw_gt_layer(draw, target_poly),
             _draw_player_layer(draw, player_area, valid_shots),
+            _draw_gt_layer_on_top(draw, target_poly),
             _draw_legend(draw, show_player=True, show_gt=True),
         ),
         output_paths["combined"],
@@ -613,6 +683,38 @@ def _region_polygon(region: dict[str, Any]) -> Polygon:
     if polygon is None:
         raise ValueError(f"区域 {region.get('region_id', '')} 多边形无效")
     return polygon
+
+
+def _fill_small_holes(geom, max_fill_hole_area: float):
+    def fill_polygon(poly: Polygon) -> Polygon:
+        holes = []
+        for ring in poly.interiors:
+            hole = Polygon(ring)
+            if hole.area > max_fill_hole_area:
+                holes.append(list(ring.coords))
+        filled = Polygon(poly.exterior.coords, holes=holes)
+        if not filled.is_valid:
+            filled = filled.buffer(0)
+        return filled
+
+    if geom.geom_type == "Polygon":
+        return fill_polygon(geom)
+    if geom.geom_type == "MultiPolygon":
+        return shapely.MultiPolygon([fill_polygon(poly) for poly in geom.geoms])
+    raise ValueError(f"玩家区域必须是 Polygon 或 MultiPolygon，实际为 {geom.geom_type}")
+
+
+def _remove_small_components(geom, min_component_area: float):
+    if geom.geom_type == "Polygon":
+        return geom
+    if geom.geom_type != "MultiPolygon":
+        raise ValueError(f"玩家区域必须是 Polygon 或 MultiPolygon，实际为 {geom.geom_type}")
+    kept = [poly for poly in geom.geoms if poly.area >= min_component_area]
+    if not kept:
+        raise ValueError("小组件过滤后没有剩余玩家治疗区域")
+    if len(kept) == 1:
+        return kept[0]
+    return shapely.MultiPolygon(kept)
 
 
 def _build_region_target_polygon(regions: list[dict[str, Any]]):
@@ -1027,6 +1129,7 @@ def evaluate(
         config_tolerance_ratio = scoring_policy.get("param_tolerance_ratio", {})
         field_generation = scoring_policy.get("spatial_parameter_field", {})
         player_coordinate_space = scoring_policy.get("player_coordinate_space", {})
+        player_area_geometry = scoring_policy.get("player_area_geometry", {})
 
         sigma_good_sq = float(spacing_th.get("sigma_good_sq", 25.0))
         sigma_max_sq = float(spacing_th.get("sigma_max_sq", 100.0))
@@ -1090,6 +1193,7 @@ def evaluate(
         if target_poly is None and gt_valid_shots:
             target_poly = _build_player_treatment_area(
                 valid_shots=gt_valid_shots,
+                player_area_geometry=player_area_geometry,
             )
 
         # 3) 危险区检测与附加惩罚统计
@@ -1147,6 +1251,7 @@ def evaluate(
         if target_poly is not None and len(valid_shots) >= 1:
             player_area = _build_player_treatment_area(
                 valid_shots=valid_shots,
+                player_area_geometry=player_area_geometry,
             )
             if player_area is not None:
                 inter_area = player_area.intersection(target_poly).area
