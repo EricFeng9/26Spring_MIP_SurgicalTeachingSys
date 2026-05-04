@@ -61,6 +61,7 @@ public struct LaserShotMetrics
     public float gradeProgress01;
 
     public float effectiveRadiusPx;
+    public float visualRadiusPx;    // <--- 新增：真实的视觉半径
     public float appearanceStrength;
 }
 
@@ -79,43 +80,48 @@ public class LaserPhysicalModel
         beta0 = zBias;
     }
 
-    public LaserShotMetrics Compute(LaserShotParameters p, float pixelToUm)
+public LaserShotMetrics Compute(LaserShotParameters p, float pixelToUm)
+{
+    float beamRadiusPx = Mathf.Max(1f, p.spotSizeUm * GetLensFactor(p.fundusLens) * 0.5f / Mathf.Max(pixelToUm, 1e-6f));
+
+    float z = ComputeFormulaZ(p.powerMw, p.spotSizeUm, p.durationMs, p.wavelengthNm, p.titrateMode) + beta0;
+    int grade = ComputeGrade(z);
+    float gradeProgress01 = ComputeGradeProgress01(z, grade);
+    float intensity = ComputeNormalizedIntensity(z);
+
+    float radiusScale;
+    switch (grade)
     {
-        float beamRadiusPx = Mathf.Max(1f, p.spotSizeUm * GetLensFactor(p.fundusLens) * 0.5f / Mathf.Max(pixelToUm, 1e-6f));
-
-        float z = ComputeFormulaZ(p.powerMw, p.spotSizeUm, p.durationMs, p.wavelengthNm, p.titrateMode) + beta0;
-        int grade = ComputeGrade(z);
-        float gradeProgress01 = ComputeGradeProgress01(z, grade);
-        float intensity = ComputeNormalizedIntensity(z);
-
-        float radiusScale;
-        switch (grade)
-        {
-            case 1:
-                radiusScale = Mathf.Lerp(0.84f, 0.98f, gradeProgress01);
-                break;
-            case 2:
-                radiusScale = Mathf.Lerp(0.98f, 1.12f, gradeProgress01);
-                break;
-            case 3:
-                radiusScale = Mathf.Lerp(1.12f, 1.28f, gradeProgress01);
-                break;
-            default:
-                radiusScale = Mathf.Lerp(1.26f, 1.48f, Mathf.SmoothStep(0f, 1f, gradeProgress01));
-                break;
-        }
-
-        return new LaserShotMetrics
-        {
-            zValue = z,
-            grade = grade,
-            normalizedIntensity = intensity,
-            gradeProgress01 = gradeProgress01,
-            effectiveRadiusPx = Mathf.Max(1f, beamRadiusPx * radiusScale * SpotRadiusRenderScale),
-            appearanceStrength = Mathf.Lerp(0.24f, 1f, intensity)
-        };
+        case 1:
+            radiusScale = Mathf.Lerp(0.84f, 0.98f, gradeProgress01);
+            break;
+        case 2:
+            radiusScale = Mathf.Lerp(0.98f, 1.12f, gradeProgress01);
+            break;
+        case 3:
+            radiusScale = Mathf.Lerp(1.12f, 1.28f, gradeProgress01);
+            break;
+        default:
+            radiusScale = Mathf.Lerp(1.26f, 1.48f, Mathf.SmoothStep(0f, 1f, gradeProgress01));
+            break;
     }
 
+    // --- 确保这一行在 switch 语句结束之后，return 语句之前 ---
+    float baseRadiusPx = beamRadiusPx * radiusScale;
+
+    return new LaserShotMetrics
+    {
+        zValue = z,
+        grade = grade,
+        normalizedIntensity = intensity,
+        gradeProgress01 = gradeProgress01,
+        // 渲染专用：包含 1.5倍 边缘扩展
+        effectiveRadiusPx = Mathf.Max(1f, baseRadiusPx * SpotRadiusRenderScale),
+        // 导出专用：真实视觉光斑大小
+        visualRadiusPx = Mathf.Max(1f, baseRadiusPx), 
+        appearanceStrength = Mathf.Lerp(0.24f, 1f, intensity)
+    };
+}
     public static float GetLensFactor(TreatmentFundusLens lens)
     {
         switch (lens)

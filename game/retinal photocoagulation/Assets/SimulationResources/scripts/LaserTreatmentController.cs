@@ -1089,11 +1089,14 @@ public class LaserTreatmentController : MonoBehaviour
 
     private ExportShotRecord BuildShotRecord(int id, Vector2Int point, LaserShotParameters parameters, LaserShotMetrics metrics)
     {
-        return new ExportShotRecord
+    return new ExportShotRecord
         {
             id = id,
             pos = new[] { (float)point.x, (float)point.y },
-            radius_px = metrics.effectiveRadiusPx,
+            
+            // 修改这里：使用真实的视觉半径
+            radius_px = metrics.visualRadiusPx, 
+            
             is_trial = parameters.titrateMode,
             @params = new ExportShotParams
             {
@@ -1172,7 +1175,9 @@ public class LaserTreatmentController : MonoBehaviour
             return;
 
         workingTexture.SetPixels(baseTexturePixels);
-        workingTexture.Apply(false, false);
+        
+        // 确保撤销后，模糊层级也能同步刷新
+        workingTexture.Apply(true, false); 
         fundusRawImage.texture = workingTexture;
     }
 
@@ -1259,7 +1264,7 @@ public class LaserTreatmentController : MonoBehaviour
             return false;
 
         workingTexture.SetPixels(snapshot.x, snapshot.y, snapshot.width, snapshot.height, snapshot.previousPixels);
-        workingTexture.Apply(false, false);
+        workingTexture.Apply(true, false);
         fundusRawImage.texture = workingTexture;
         return true;
     }
@@ -1677,9 +1682,13 @@ public class LaserTreatmentController : MonoBehaviour
 
     private Texture2D CloneTexture(Texture2D source, Color[] pixels = null)
     {
-        Texture2D tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+        // 【修改点1】：第四个参数必须为 true，以启用 Mipmap 生成
+        Texture2D tex = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true); 
+        
         tex.SetPixels(pixels ?? source.GetPixels());
-        tex.Apply(false, false);
+        
+        // 【修改点2】：第一个参数必须为 true，强制显卡重新计算所有 Mipmap 层级
+        tex.Apply(true, false); 
         return tex;
     }
 

@@ -27,7 +27,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
 
     [Header("UI References")]
     [SerializeField] private RawImage fundusRawImage;         // 清晰图
-    [SerializeField] private RawImage focusBlurRawImage;      // 模糊层（叠在清晰图上面）
+    // [SerializeField] private RawImage focusBlurRawImage;      // 模糊层（叠在清晰图上面）
     [SerializeField] private RectTransform circularViewportRect; //圆形可见区域
     [SerializeField] private TMP_Dropdown lensDropdown;
     [SerializeField] private Text debugText;                  // 可选
@@ -74,7 +74,9 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
     [Header("Debug")]
     [SerializeField] private bool initializeOnStart = true;
     [SerializeField] private bool logDebugInfo = true;
-
+    
+    // --- 新增这个变量来直接跟显卡对话 ---
+    private Material activeFocusMaterial;
     private bool[] areaMask;        // 面积计算 / 质心 / 原始有效区域
     private float[] moveSoftMask;   // 移动边界判断
     private int texWidth;
@@ -294,8 +296,12 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         }
 
         if (fundusRawImage != null)
+        {
             fundusRawImage.texture = sourceTexture;
-
+            
+            // --- 新增这一行：抓取我们刚挂上去的材质球 ---
+            activeFocusMaterial = fundusRawImage.material; 
+        }
         // 重新生成模糊图
         // if (focusBlurTexture != null)
         // {
@@ -716,7 +722,7 @@ private void SetupLensDropdown()
         float posY = -scaledHeight * 0.5f + currentCenterPx.y * uiScale;
 
         ApplyRawImageTransform(fundusRawImage, scaledWidth, scaledHeight, posX, posY);
-        ApplyRawImageTransform(focusBlurRawImage, scaledWidth, scaledHeight, posX, posY);
+        // ApplyRawImageTransform(focusBlurRawImage, scaledWidth, scaledHeight, posX, posY);
     }
 
     private void ApplyRawImageTransform(RawImage rawImage, float scaledWidth, float scaledHeight, float posX, float posY)
@@ -734,14 +740,23 @@ private void SetupLensDropdown()
         rawImage.uvRect = new Rect(0f, 0f, 1f, 1f);
     }
 
+    // private void UpdateFocusVisual()
+    // {
+    //     if (focusBlurRawImage == null)
+    //         return;
+
+    //     Color c = focusBlurRawImage.color;
+    //     c.a = enableFocus ? (1f - focusNormalized) : 0f;
+    //     focusBlurRawImage.color = c;
+    // }
     private void UpdateFocusVisual()
     {
-        if (focusBlurRawImage == null)
-            return;
-
-        Color c = focusBlurRawImage.color;
-        c.a = enableFocus ? (1f - focusNormalized) : 0f;
-        focusBlurRawImage.color = c;
+        if (activeFocusMaterial != null)
+        {
+            // 鼠标滚轮改变的 focusNormalized (0~1) 
+            // 刚好对应 Shader 里的 Focal Plane Depth (焦平面深度)
+            activeFocusMaterial.SetFloat("_FocusDepth", focusNormalized);
+        }
     }
 
     private bool TryGetOriginalPixelFromPointer(PointerEventData eventData, out Vector2 originalPx, out Vector2 localPoint)

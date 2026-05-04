@@ -97,7 +97,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: ad006995e93af6e40bb5f342827711b6, type: 2}
   m_LightingSettings: {fileID: 0}
 --- !u!196 &4
 NavMeshSettings:
@@ -14187,7 +14187,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 521077045}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.32032573
+  m_Size: 0.32033697
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -14862,11 +14862,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   slitLamp: {fileID: 1163686895}
   fundusRawImage: {fileID: 1225776002}
-  focusBlurRawImage: {fileID: 1439900925}
   circularViewportRect: {fileID: 2042646094}
   lensDropdown: {fileID: 2059907818}
   debugText: {fileID: 0}
-  sourceTexture: {fileID: 2800000, guid: 635208e16582e744f9d289ea18908adf, type: 3}
+  sourceTexture: {fileID: 2800000, guid: 28f120cbf712fcc4f9dd029a25ab09ea, type: 3}
   nonBlackThreshold: 8
   useMaskCentroidAsStart: 1
   startXFraction: 0.5
@@ -14884,7 +14883,7 @@ MonoBehaviour:
   moveMaskAcceptThreshold: 0.35
   allowedInvalidRingSamples: 3
   allowedInvalidInnerSamples: 1
-  enableFocus: 1
+  enableFocus: 0
   initialFocusNormalized: 0
   focusWheelStep: 0.153
   focusBlurRadius: 12
@@ -17458,7 +17457,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1439900925
 MonoBehaviour:
   m_ObjectHideFlags: 0
