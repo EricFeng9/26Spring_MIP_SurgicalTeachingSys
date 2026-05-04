@@ -34,6 +34,8 @@ namespace RetinalPrototype.Hub
 
         [Header("Scene Transition")]
         [SerializeField] private string targetSceneName;
+        [SerializeField] private bool savePlayerReturnPose = true;
+        [SerializeField] private ClinicHubLoadingOverlayController loadingOverlay;
         [SerializeField] private SceneTransitionController sceneTransition;
 
         [Header("Events")]
@@ -92,7 +94,16 @@ namespace RetinalPrototype.Hub
 
             if (!string.IsNullOrEmpty(targetSceneName))
             {
-                if (sceneTransition != null)
+                if (savePlayerReturnPose)
+                {
+                    ClinicHubReturnState.SavePose(player.transform.position, player.IsFacingRight());
+                }
+
+                if (loadingOverlay != null)
+                {
+                    loadingOverlay.LoadScene(targetSceneName, enterAction);
+                }
+                else if (sceneTransition != null)
                 {
                     sceneTransition.LoadScene(targetSceneName);
                 }
