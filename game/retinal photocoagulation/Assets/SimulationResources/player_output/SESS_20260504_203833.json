@@ -1,0 +1,25 @@
+{
+    "session_id": "SESS_20260504_203833",
+    "task_id": "T001_RP_Standard",
+    "player_info": {
+        "id": "ST_001",
+        "name": "Operator"
+    },
+    "shots": [
+        {
+            "id": 1,
+            "pos": [
+                1422.0,
+                1192.0
+            ],
+            "radius_px": 3.5811879634857179,
+            "is_trial": false,
+            "params": {
+                "power": 180.0,
+                "spot_size": 125.0,
+                "exposure_time": 20.0,
+                "wavelength": 532.0
+            }
+        }
+    ]
+}
