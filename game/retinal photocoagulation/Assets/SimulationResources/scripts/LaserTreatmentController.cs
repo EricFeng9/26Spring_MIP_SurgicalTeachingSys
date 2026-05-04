@@ -812,78 +812,63 @@ public class LaserTreatmentController : MonoBehaviour
     }
 
     private void RefreshMinimapVisuals(bool forceHideWhenUnavailable = false)
+{
+    if (minimapLitRegionImage == null)
+        return;
+
+    if (workingTexture == null || fovController == null || !fovController.IsReady)
     {
-        if (minimapLitRegionImage == null)
-            return;
-
-        if (workingTexture == null || fovController == null || !fovController.IsReady)
-        {
-            if (forceHideWhenUnavailable)
-                minimapLitRegionImage.enabled = false;
-            return;
-        }
-
-        SyncMinimapTexture();
-
-        RectTransform viewportRect = minimapViewportRect != null
-            ? minimapViewportRect
-            : (minimapRawImage != null ? minimapRawImage.rectTransform : null);
-        if (viewportRect == null)
-        {
-            if (forceHideWhenUnavailable)
-                minimapLitRegionImage.enabled = false;
-            return;
-        }
-
-        RectTransform highlightRect = minimapLitRegionImage.rectTransform;
-        float mapWidth = viewportRect.rect.width;
-        float mapHeight = viewportRect.rect.height;
-        if (mapWidth <= 0.001f || mapHeight <= 0.001f)
-        {
-            if (forceHideWhenUnavailable)
-                minimapLitRegionImage.enabled = false;
-            return;
-        }
-
-        float texWidth = workingTexture.width;
-        float texHeight = workingTexture.height;
-        if (texWidth <= 0.001f || texHeight <= 0.001f)
-        {
-            if (forceHideWhenUnavailable)
-                minimapLitRegionImage.enabled = false;
-            return;
-        }
-
-        Vector2 slitBounds = slitLamp != null ? slitLamp.GetSlitBoundsNormalized() : new Vector2(0f, 1f);
-        float normalizedWidth = Mathf.Clamp01(slitBounds.y - slitBounds.x);
-        float normalizedHeight = Mathf.Clamp01(fovController.CurrentDiameterPx / texHeight);
-        float centerXNormalized = Mathf.Clamp01(fovController.CurrentCenterPx.x / texWidth);
-        float centerYNormalized = Mathf.Clamp01(fovController.CurrentCenterPx.y / texHeight);
-
-        float rectWidth = Mathf.Clamp(normalizedWidth * mapWidth, 2f, mapWidth);
-        float rectHeight = Mathf.Clamp(normalizedHeight * mapHeight, 2f, mapHeight);
-        float rectLeft = Mathf.Clamp(centerXNormalized - normalizedWidth * 0.5f, 0f, 1f - normalizedWidth);
-        float rectTop = Mathf.Clamp(centerYNormalized - normalizedHeight * 0.5f, 0f, 1f - normalizedHeight);
-        float rectCenterX = rectLeft + normalizedWidth * 0.5f;
-        float rectCenterY = rectTop + normalizedHeight * 0.5f;
-
-        float anchoredX = Mathf.Lerp(-mapWidth * 0.5f, mapWidth * 0.5f, rectCenterX);
-        float anchoredY = Mathf.Lerp(mapHeight * 0.5f, -mapHeight * 0.5f, rectCenterY);
-
-        highlightRect.anchorMin = new Vector2(0.5f, 0.5f);
-        highlightRect.anchorMax = new Vector2(0.5f, 0.5f);
-        highlightRect.pivot = new Vector2(0.5f, 0.5f);
-        highlightRect.anchoredPosition = new Vector2(anchoredX, anchoredY);
-        highlightRect.sizeDelta = new Vector2(rectWidth, rectHeight);
-
-        float blinkT = (Mathf.Sin(Time.unscaledTime * Mathf.Max(0.01f, minimapBlinkSpeed) * Mathf.PI * 2f) + 1f) * 0.5f;
-        float alpha = Mathf.Lerp(minimapBlinkMinAlpha, minimapBlinkMaxAlpha, blinkT);
-        Color color = MinimapHighlightBaseColor;
-        color.a = alpha;
-        minimapLitRegionImage.color = color;
-        minimapLitRegionImage.enabled = true;
+        if (forceHideWhenUnavailable) minimapLitRegionImage.enabled = false;
+        return;
     }
 
+    SyncMinimapTexture();
+
+    // 【核心修正1】：强制优先使用 minimapRawImage，因为只有它的 rect 才真正代表图片的实际显示边界（剔除了黑边影响）
+    RectTransform targetMapRect = minimapRawImage != null ? minimapRawImage.rectTransform : minimapViewportRect;
+    if (targetMapRect == null || targetMapRect.rect.width <= 0.001f || targetMapRect.rect.height <= 0.001f)
+    {
+        if (forceHideWhenUnavailable) minimapLitRegionImage.enabled = false;
+        return;
+    }
+
+    float texWidth = workingTexture.width;
+    float texHeight = workingTexture.height;
+    if (texWidth <= 0.001f || texHeight <= 0.001f)
+        return;
+
+    // 1. 获取当前准星确切的底图物理像素坐标
+    Vector2Int aimPxTopLeft = GetCurrentAimPointTopLeft();
+
+    // 2. 将坐标转换为 0~1 的归一化比例 (0=左/下, 1=右/上)
+    float normCenterX = Mathf.Clamp01((float)aimPxTopLeft.x / texWidth);
+    float normCenterY = Mathf.Clamp01(1f - ((float)aimPxTopLeft.y / texHeight)); // 翻转Y轴匹配UI逻辑
+
+    // 3. 【核心修正2】：在目标图片自身的局部坐标系中计算位置，完全规避外部窗口的缩放影响
+    float localX = (normCenterX - targetMapRect.pivot.x) * targetMapRect.rect.width;
+    float localY = (normCenterY - targetMapRect.pivot.y) * targetMapRect.rect.height;
+    Vector2 targetLocalPos = new Vector2(localX, localY);
+    
+    // 使用 Unity 内置矩阵，将局部坐标无损转换为屏幕/世界坐标
+    Vector3 worldPos = targetMapRect.TransformPoint(targetLocalPos);
+
+    // 4. 将绿点直接“瞬移”到计算出的世界坐标上
+    RectTransform highlightRect = minimapLitRegionImage.rectTransform;
+    // 必须强制将中心轴设在正中间，防止图片自带偏移
+    highlightRect.pivot = new Vector2(0.5f, 0.5f); 
+    highlightRect.position = worldPos;
+    
+    // 固定圆点大小（推荐 14~18 左右）
+    float dotSize = 16f;
+    highlightRect.sizeDelta = new Vector2(dotSize, dotSize);
+
+    // 5. 呼吸灯动画效果
+    float blinkT = (Mathf.Sin(Time.unscaledTime * Mathf.Max(0.01f, minimapBlinkSpeed) * Mathf.PI * 2f) + 1f) * 0.5f;
+    Color color = MinimapHighlightBaseColor;
+    color.a = Mathf.Lerp(minimapBlinkMinAlpha, minimapBlinkMaxAlpha, blinkT);
+    minimapLitRegionImage.color = color;
+    minimapLitRegionImage.enabled = true;
+}
     private void RefreshInfoBar(bool force = false)
     {
         if (spotsValueText != null)

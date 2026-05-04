@@ -47,7 +47,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
     [Header("Movement")]
     [SerializeField] private bool enableKeyboardMove = true;
     [SerializeField] private bool useWASD = true;
-    [SerializeField] private float moveSpeedPxPerSecond = 180f;
+    [SerializeField] private float moveSpeedPxPerSecond = 360f;
     [SerializeField] private float fineMoveSpeedMultiplier = 0.2f;
     [SerializeField] private bool normalizeDiagonal = true;
 
@@ -211,7 +211,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         }
     }
 
-    public void MoveHorizontalByDirection(float direction, float speedScale = 1f)
+public void MoveHorizontalByDirection(float direction, float speedScale = 1f)
     {
         if (!isReady)
             return;
@@ -224,29 +224,25 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
         if (Mathf.Abs(deltaPx) <= 0.001f)
             return;
 
+        // 【核心修复】：使用底层视野直径 (CurrentDiameterPx) 替代 UI 宽度 (viewportWidth)
+        // 这样计算出的 normalizedDelta 能保证裂隙灯在边缘的 UI 移动速度与中心底图的移动速度视觉上绝对 1:1 一致
+        float normalizedDelta = deltaPx / Mathf.Max(1f, currentDiameterPx);
+
+        // 1. 如果裂隙不在中心 -> 先只动裂隙，使其归中
         if (slitLamp != null && !slitLamp.IsSlitCentered())
         {
-            float viewportWidth = circularViewportRect != null ? circularViewportRect.rect.width : 0f;
-            if (viewportWidth > 0.001f)
-            {
-                float normalizedDelta = deltaPx / viewportWidth;
-                slitLamp.AddSlitCenterXNormalized(normalizedDelta);
-            }
+            slitLamp.AddSlitCenterXNormalized(normalizedDelta);
             return;
         }
 
+        // 2. 尝试移动底图
         bool movedX = TryMoveImageX(deltaPx);
         if (movedX || slitLamp == null)
             return;
 
-        float slitViewportWidth = circularViewportRect != null ? circularViewportRect.rect.width : 0f;
-        if (slitViewportWidth <= 0.001f)
-            return;
-
-        float slitNormalizedDelta = deltaPx / slitViewportWidth;
-        slitLamp.AddSlitCenterXNormalized(slitNormalizedDelta);
+        // 3. 底图碰到左右边缘（撞墙） -> 图像无法移动，转而移动裂隙（准星）
+        slitLamp.AddSlitCenterXNormalized(normalizedDelta);
     }
-
     public void MoveVerticalByDirection(float direction, float speedScale = 1f)
     {
         if (!isReady)
