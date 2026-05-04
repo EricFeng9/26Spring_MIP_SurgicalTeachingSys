@@ -108,11 +108,8 @@ public static class LaserSpotRenderer
             }
         }
 
-        // 在 LaserSpotRenderer.RenderShot 末尾
         SoftBlurRoi(roi, patchW, patchH, 1);
         texture.SetPixels(xMin, yMin, patchW, patchH, roi);
-
-        // 必须启用 Mipmap 更新，否则在高倍率/远距离观察时看不到新渲染的光斑
         texture.Apply(true, false);
 
         return metrics;

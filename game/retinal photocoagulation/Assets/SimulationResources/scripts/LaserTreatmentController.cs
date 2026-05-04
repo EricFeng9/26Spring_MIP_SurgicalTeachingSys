@@ -398,7 +398,67 @@ public class LaserTreatmentController : MonoBehaviour
         RefreshMinimapVisuals(forceHideWhenUnavailable: true);
     }
 
-    private void Fire(LaserShotParameters parameters)
+    // private void Fire(LaserShotParameters parameters)
+    // {
+    //     if (physicalModel == null)
+    //         physicalModel = new LaserPhysicalModel();
+
+    //     if (workingTexture == null || fovController == null || !fovController.IsReady)
+    //         return;
+
+    //     float pixelToUm = GetEffectivePixelToUm();
+    //     Vector2Int aimPoint = GetCurrentAimPointTopLeft();
+    //     List<Vector2Int> shotPoints = BuildShotPoints(aimPoint, parameters, pixelToUm);
+    //     LaserShotMetrics previewMetrics = physicalModel.Compute(parameters, pixelToUm);
+    //     List<Vector2Int> validShotPoints = new List<Vector2Int>(shotPoints.Count);
+
+    //     // BlurRegion mergedUndoRegion = default;
+    //     for (int i = 0; i < shotPoints.Count; i++)
+    //     {
+    //         Vector2Int pt = shotPoints[i];
+    //         if (pt.x < 0 || pt.y < 0 || pt.x >= workingTexture.width || pt.y >= workingTexture.height)
+    //             continue;
+
+    //         validShotPoints.Add(pt);
+    //         // MergeBlurRegion(ref mergedUndoRegion, BuildRenderRegionForShot(pt, previewMetrics));
+    //     }
+
+    //     if (validShotPoints.Count <= 0)
+    //         return;
+
+    //     // UndoShotSnapshot actionUndoSnapshot = CaptureUndoSnapshot(mergedUndoRegion, validShotPoints.Count);
+
+    //     LaserShotMetrics lastMetrics = default;
+    //     BlurRegion mergedBlurRegion = default;
+
+    //     foreach (Vector2Int pt in validShotPoints)
+    //     {
+    //         lastMetrics = LaserSpotRenderer.RenderShot(
+    //             workingTexture,
+    //             pt,
+    //             parameters,
+    //             physicalModel,
+    //             pixelToUm
+    //         );
+
+    //         MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
+    //         shotCount++;
+    //         shotHistory.Add(BuildShotRecord(shotCount, pt, parameters, lastMetrics));
+    //     }
+
+    //     if (actionUndoSnapshot.IsValid)
+    //     {
+    //         actionUndoSnapshot.blurRegion = mergedBlurRegion;
+    //         undoShotHistory.Add(actionUndoSnapshot);
+    //     }
+
+    //     TriggerShotFlash();
+    //     lastComputedGrade = lastMetrics.grade;
+    //     // QueueBlurRebuild(mergedBlurRegion);
+    //     RefreshInfoBar(force: true);
+    //     RefreshStatus(parameters, lastMetrics);
+    // }
+private void Fire(LaserShotParameters parameters)
     {
         if (physicalModel == null)
             physicalModel = new LaserPhysicalModel();
@@ -412,7 +472,7 @@ public class LaserTreatmentController : MonoBehaviour
         LaserShotMetrics previewMetrics = physicalModel.Compute(parameters, pixelToUm);
         List<Vector2Int> validShotPoints = new List<Vector2Int>(shotPoints.Count);
 
-        BlurRegion mergedUndoRegion = default;
+        // 已废弃旧逻辑：BlurRegion mergedUndoRegion = default;
         for (int i = 0; i < shotPoints.Count; i++)
         {
             Vector2Int pt = shotPoints[i];
@@ -420,16 +480,16 @@ public class LaserTreatmentController : MonoBehaviour
                 continue;
 
             validShotPoints.Add(pt);
-            MergeBlurRegion(ref mergedUndoRegion, BuildRenderRegionForShot(pt, previewMetrics));
+            // 已废弃旧逻辑：MergeBlurRegion(ref mergedUndoRegion, BuildRenderRegionForShot(pt, previewMetrics));
         }
 
         if (validShotPoints.Count <= 0)
             return;
 
-        UndoShotSnapshot actionUndoSnapshot = CaptureUndoSnapshot(mergedUndoRegion, validShotPoints.Count);
+        // 已废弃旧逻辑：UndoShotSnapshot actionUndoSnapshot = CaptureUndoSnapshot(mergedUndoRegion, validShotPoints.Count);
 
         LaserShotMetrics lastMetrics = default;
-        BlurRegion mergedBlurRegion = default;
+        // 已废弃旧逻辑：BlurRegion mergedBlurRegion = default;
 
         foreach (Vector2Int pt in validShotPoints)
         {
@@ -441,24 +501,26 @@ public class LaserTreatmentController : MonoBehaviour
                 pixelToUm
             );
 
-            MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
+            // 已废弃旧逻辑：MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
             shotCount++;
             shotHistory.Add(BuildShotRecord(shotCount, pt, parameters, lastMetrics));
         }
 
+        // 已废弃旧逻辑：修复编译报错，这里不再引用被注释掉的 actionUndoSnapshot 变量
+        /*
         if (actionUndoSnapshot.IsValid)
         {
             actionUndoSnapshot.blurRegion = mergedBlurRegion;
             undoShotHistory.Add(actionUndoSnapshot);
         }
+        */
 
         TriggerShotFlash();
         lastComputedGrade = lastMetrics.grade;
-        QueueBlurRebuild(mergedBlurRegion);
+        // 已废弃旧逻辑：QueueBlurRebuild(mergedBlurRegion);
         RefreshInfoBar(force: true);
         RefreshStatus(parameters, lastMetrics);
     }
-
     private LaserShotParameters ReadParametersFromUI()
     {
         LaserShotParameters p = new LaserShotParameters();
@@ -994,7 +1056,48 @@ public class LaserTreatmentController : MonoBehaviour
         return 1500f;
     }
 
-    private void UndoLastShot()
+    // private void UndoLastShot()
+    // {
+    //     if (shotHistory.Count <= 0)
+    //     {
+    //         RefreshInfoBar(force: true);
+    //         RefreshStatus(null, default);
+    //         return;
+    //     }
+
+    //     if (TryUndoFromSnapshot(out UndoShotSnapshot snapshot))
+    //     {
+    //         int removeCount = Mathf.Clamp(snapshot.shotCountDelta, 1, shotHistory.Count);
+    //         shotHistory.RemoveRange(shotHistory.Count - removeCount, removeCount);
+    //         shotCount = shotHistory.Count;
+    //         lastComputedGrade = shotHistory.Count > 0 ? 0 : 0;
+
+    //         QueueBlurRebuild(snapshot.blurRegion);
+    //         RefreshInfoBar(force: true);
+
+    //         if (shotHistory.Count > 0)
+    //         {
+    //             ExportShotRecord lastRecord = shotHistory[shotHistory.Count - 1];
+    //             LaserShotParameters statusParams = BuildParametersFromRecord(lastRecord);
+    //             LaserShotMetrics statusMetrics = default;
+    //             RefreshStatus(statusParams, statusMetrics);
+    //         }
+    //         else
+    //         {
+    //             RefreshStatus(null, default);
+    //         }
+
+    //         return;
+    //     }
+
+    //     shotHistory.RemoveAt(shotHistory.Count - 1);
+    //     shotCount = shotHistory.Count;
+    //     lastComputedGrade = 0;
+    //     RebuildWorkingTextureFromHistory();
+    //     RefreshInfoBar(force: true);
+    //     RefreshStatus(null, default);
+    // }
+private void UndoLastShot()
     {
         if (shotHistory.Count <= 0)
         {
@@ -1003,39 +1106,32 @@ public class LaserTreatmentController : MonoBehaviour
             return;
         }
 
-        if (TryUndoFromSnapshot(out UndoShotSnapshot snapshot))
-        {
-            int removeCount = Mathf.Clamp(snapshot.shotCountDelta, 1, shotHistory.Count);
-            shotHistory.RemoveRange(shotHistory.Count - removeCount, removeCount);
-            shotCount = shotHistory.Count;
-            lastComputedGrade = shotHistory.Count > 0 ? 0 : 0;
+        // 已废弃旧逻辑：完全移除了 TryUndoFromSnapshot 相关的代码块
+        // 现在统一使用基于历史数据的全局重绘逻辑，更安全且不占内存
 
-            QueueBlurRebuild(snapshot.blurRegion);
-            RefreshInfoBar(force: true);
-
-            if (shotHistory.Count > 0)
-            {
-                ExportShotRecord lastRecord = shotHistory[shotHistory.Count - 1];
-                LaserShotParameters statusParams = BuildParametersFromRecord(lastRecord);
-                LaserShotMetrics statusMetrics = default;
-                RefreshStatus(statusParams, statusMetrics);
-            }
-            else
-            {
-                RefreshStatus(null, default);
-            }
-
-            return;
-        }
-
+        // 1. 从数据记录中移除最后一枪（如果是矩阵射击，目前这只移除最后一个“点”，
+        // 如果你需要撤销整个矩阵，以后可以将 shotHistory 结构改为按操作批次存储）
         shotHistory.RemoveAt(shotHistory.Count - 1);
         shotCount = shotHistory.Count;
-        lastComputedGrade = 0;
+        lastComputedGrade = 0; // 这个值会在重绘时重新计算
+        
+        // 2. 清空并还原底图，然后重新渲染剩下的历史点
         RebuildWorkingTextureFromHistory();
         RefreshInfoBar(force: true);
-        RefreshStatus(null, default);
-    }
 
+        // 3. 更新状态面板显示
+        if (shotHistory.Count > 0)
+        {
+            ExportShotRecord lastRecord = shotHistory[shotHistory.Count - 1];
+            LaserShotParameters statusParams = BuildParametersFromRecord(lastRecord);
+            // 状态栏可能需要 Metrics 数据，由于这里只是 UI 显示，我们传 default 即可
+            RefreshStatus(statusParams, default);
+        }
+        else
+        {
+            RefreshStatus(null, default);
+        }
+    }
     private void ClearAllShots()
     {
         shotHistory.Clear();
@@ -1281,7 +1377,7 @@ public class LaserTreatmentController : MonoBehaviour
                 blurRebuildCoroutine = null;
             }
 
-            RebuildBlurTextureIfNeeded(force: true, fullRebuild: fullRebuild);
+            // RebuildBlurTextureIfNeeded(force: true, fullRebuild: fullRebuild);
             blurRebuildQueued = false;
             pendingBlurRegion = default;
             return;
@@ -1324,7 +1420,7 @@ public class LaserTreatmentController : MonoBehaviour
 
         if (!fullRebuild && dirtyRegion.IsValid)
         {
-            UpdateBlurRegion(dirtyRegion);
+            // UpdateBlurRegion(dirtyRegion);
         }
         else
         {

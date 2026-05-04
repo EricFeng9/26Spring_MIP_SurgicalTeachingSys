@@ -27,7 +27,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
 
     [Header("UI References")]
     [SerializeField] private RawImage fundusRawImage;         // 清晰图
-    // [SerializeField] private RawImage focusBlurRawImage;      // 模糊层（叠在清晰图上面）
+    [SerializeField] private RawImage focusBlurRawImage;      // 模糊层（叠在清晰图上面）
     [SerializeField] private RectTransform circularViewportRect; //圆形可见区域
     [SerializeField] private TMP_Dropdown lensDropdown;
     [SerializeField] private Text debugText;                  // 可选
@@ -75,8 +75,6 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
     [SerializeField] private bool initializeOnStart = true;
     [SerializeField] private bool logDebugInfo = true;
     
-    // --- 新增这个变量来直接跟显卡对话 ---
-    private Material activeFocusMaterial;
     private bool[] areaMask;        // 面积计算 / 质心 / 原始有效区域
     private float[] moveSoftMask;   // 移动边界判断
     private int texWidth;
@@ -89,7 +87,7 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
 
     private bool isReady;
 
-    // private Texture2D focusBlurTexture;
+    private Texture2D focusBlurTexture;
     private float focusNormalized;
     private bool isCalibrationMode;
     private bool hasCalibrationStartPoint;
@@ -129,11 +127,11 @@ public class FundusFovController : MonoBehaviour, IPointerDownHandler, IPointerM
 
     private void OnDestroy()
     {
-        // if (focusBlurTexture != null)
-        // {
-        //     Destroy(focusBlurTexture);
-        //     focusBlurTexture = null;
-        // }
+        if (focusBlurTexture != null)
+        {
+            Destroy(focusBlurTexture);
+            focusBlurTexture = null;
+        }
     }
 
     private void Update()
@@ -294,22 +292,21 @@ public void MoveHorizontalByDirection(float direction, float speedScale = 1f)
         if (fundusRawImage != null)
         {
             fundusRawImage.texture = sourceTexture;
-            
-            // --- 新增这一行：抓取我们刚挂上去的材质球 ---
-            activeFocusMaterial = fundusRawImage.material; 
         }
-        // 重新生成模糊图
-        // if (focusBlurTexture != null)
-        // {
-        //     Destroy(focusBlurTexture);
-        //     focusBlurTexture = null;
-        // }
 
-        // if (focusBlurRawImage != null)
-        // {
-        //     focusBlurTexture = CreateBlurredTexture(sourceTexture, focusBlurRadius);
-        //     focusBlurRawImage.texture = focusBlurTexture;
-        // }
+        // 重新生成模糊图
+        if (focusBlurTexture != null)
+        {
+            Destroy(focusBlurTexture);
+            focusBlurTexture = null;
+        }
+
+        if (focusBlurRawImage != null)
+        {
+            focusBlurTexture = CreateBlurredTexture(sourceTexture, focusBlurRadius);
+            focusBlurRawImage.texture = focusBlurTexture;
+            focusBlurRawImage.raycastTarget = false;
+        }
 
         // 新图加载后默认先模糊
         focusNormalized = initialFocusNormalized;
@@ -718,7 +715,7 @@ private void SetupLensDropdown()
         float posY = -scaledHeight * 0.5f + currentCenterPx.y * uiScale;
 
         ApplyRawImageTransform(fundusRawImage, scaledWidth, scaledHeight, posX, posY);
-        // ApplyRawImageTransform(focusBlurRawImage, scaledWidth, scaledHeight, posX, posY);
+        ApplyRawImageTransform(focusBlurRawImage, scaledWidth, scaledHeight, posX, posY);
     }
 
     private void ApplyRawImageTransform(RawImage rawImage, float scaledWidth, float scaledHeight, float posX, float posY)
@@ -736,23 +733,14 @@ private void SetupLensDropdown()
         rawImage.uvRect = new Rect(0f, 0f, 1f, 1f);
     }
 
-    // private void UpdateFocusVisual()
-    // {
-    //     if (focusBlurRawImage == null)
-    //         return;
-
-    //     Color c = focusBlurRawImage.color;
-    //     c.a = enableFocus ? (1f - focusNormalized) : 0f;
-    //     focusBlurRawImage.color = c;
-    // }
     private void UpdateFocusVisual()
     {
-        if (activeFocusMaterial != null)
-        {
-            // 鼠标滚轮改变的 focusNormalized (0~1) 
-            // 刚好对应 Shader 里的 Focal Plane Depth (焦平面深度)
-            activeFocusMaterial.SetFloat("_FocusDepth", focusNormalized);
-        }
+        if (focusBlurRawImage == null)
+            return;
+
+        Color c = focusBlurRawImage.color;
+        c.a = enableFocus ? (1f - focusNormalized) : 0f;
+        focusBlurRawImage.color = c;
     }
 
     private bool TryGetOriginalPixelFromPointer(PointerEventData eventData, out Vector2 originalPx, out Vector2 localPoint)
@@ -970,72 +958,72 @@ private void SetupLensDropdown()
             calibrationPreviewEndMarker.gameObject.SetActive(visible);
     }
 
-    // private Texture2D CreateBlurredTexture(Texture2D source, int radius)
-    // {
-    //     if (source == null)
-    //         return null;
+    private Texture2D CreateBlurredTexture(Texture2D source, int radius)
+    {
+        if (source == null)
+            return null;
 
-    //     Color[] src = source.GetPixels();
-    //     int w = source.width;
-    //     int h = source.height;
+        Color[] src = source.GetPixels();
+        int w = source.width;
+        int h = source.height;
 
-    //     Color[] temp = new Color[src.Length];
-    //     Color[] dst = new Color[src.Length];
+        Color[] temp = new Color[src.Length];
+        Color[] dst = new Color[src.Length];
 
-    //     BoxBlurHorizontal(src, temp, w, h, radius);
-    //     BoxBlurVertical(temp, dst, w, h, radius);
+        BoxBlurHorizontal(src, temp, w, h, radius);
+        BoxBlurVertical(temp, dst, w, h, radius);
 
-    //     Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-    //     tex.SetPixels(dst);
-    //     tex.Apply();
-    //     return tex;
-    // }
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.SetPixels(dst);
+        tex.Apply();
+        return tex;
+    }
 
-    // private void BoxBlurHorizontal(Color[] src, Color[] dst, int w, int h, int radius)
-    // {
-    //     for (int y = 0; y < h; y++)
-    //     {
-    //         for (int x = 0; x < w; x++)
-    //         {
-    //             Color sum = Color.black;
-    //             int count = 0;
+    private void BoxBlurHorizontal(Color[] src, Color[] dst, int w, int h, int radius)
+    {
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                Color sum = Color.black;
+                int count = 0;
 
-    //             int xmin = Mathf.Max(0, x - radius);
-    //             int xmax = Mathf.Min(w - 1, x + radius);
+                int xmin = Mathf.Max(0, x - radius);
+                int xmax = Mathf.Min(w - 1, x + radius);
 
-    //             for (int xx = xmin; xx <= xmax; xx++)
-    //             {
-    //                 sum += src[y * w + xx];
-    //                 count++;
-    //             }
+                for (int xx = xmin; xx <= xmax; xx++)
+                {
+                    sum += src[y * w + xx];
+                    count++;
+                }
 
-    //             dst[y * w + x] = sum / count;
-    //         }
-    //     }
-    // }
+                dst[y * w + x] = sum / count;
+            }
+        }
+    }
 
-    // private void BoxBlurVertical(Color[] src, Color[] dst, int w, int h, int radius)
-    // {
-    //     for (int y = 0; y < h; y++)
-    //     {
-    //         for (int x = 0; x < w; x++)
-    //         {
-    //             Color sum = Color.black;
-    //             int count = 0;
+    private void BoxBlurVertical(Color[] src, Color[] dst, int w, int h, int radius)
+    {
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                Color sum = Color.black;
+                int count = 0;
 
-    //             int ymin = Mathf.Max(0, y - radius);
-    //             int ymax = Mathf.Min(h - 1, y + radius);
+                int ymin = Mathf.Max(0, y - radius);
+                int ymax = Mathf.Min(h - 1, y + radius);
 
-    //             for (int yy = ymin; yy <= ymax; yy++)
-    //             {
-    //                 sum += src[yy * w + x];
-    //                 count++;
-    //             }
+                for (int yy = ymin; yy <= ymax; yy++)
+                {
+                    sum += src[yy * w + x];
+                    count++;
+                }
 
-    //             dst[y * w + x] = sum / count;
-    //         }
-    //     }
-    // }
+                dst[y * w + x] = sum / count;
+            }
+        }
+    }
 
     private bool[] DilateMask(bool[] src, int w, int h, int radius)
     {
