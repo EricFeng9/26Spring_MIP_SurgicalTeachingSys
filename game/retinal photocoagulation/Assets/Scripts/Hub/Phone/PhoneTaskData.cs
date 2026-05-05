@@ -31,6 +31,9 @@ namespace RetinalPrototype.Hub.Phone
 
         [Header("Decision")]
         public bool requiresDecision = true;
+        public string taskId = "TASK_001";
+        public string diseaseCategory = "未分类";
+        public string selectedDiseaseWhenAccepted = "未选择";
         public string yesSceneName;
         public string noSceneName;
 

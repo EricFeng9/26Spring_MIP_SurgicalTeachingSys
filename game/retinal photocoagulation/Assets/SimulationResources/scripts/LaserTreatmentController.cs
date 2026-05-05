@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using TMPro;
+using RetinalPrototype.Hub;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -179,6 +180,10 @@ public class LaserTreatmentController : MonoBehaviour
     [SerializeField] private string defaultTaskId = "T001_RP_Standard";
     [SerializeField] private string defaultPlayerId = "ST_001";
     [SerializeField] private string defaultPlayerName = "Operator";
+
+    [Header("Evaluation API")]
+    [SerializeField] private bool submitExportToEvaluationApi = true;
+    [SerializeField] private EvaluationApiClient evaluationApiClient;
 
     [Header("Runtime")]
     [SerializeField] private KeyCode fireKey = KeyCode.Space;
@@ -1653,8 +1658,56 @@ private void RebuildBlurTextureIfNeeded(bool force = false, bool fullRebuild = f
         if (statusText != null)
             statusText.text = result.message;
 
+        if (submitExportToEvaluationApi)
+        {
+            if (statusText != null)
+                statusText.text = "Exported. Submitting evaluation...";
+
+            yield return SubmitExportSnapshotToEvaluationApi(sessionId, snapshot);
+        }
+
         yield return null;
         SceneManager.LoadScene("ClinicHub");
+    }
+
+    private IEnumerator SubmitExportSnapshotToEvaluationApi(string sessionId, ExportSnapshot snapshot)
+    {
+        if (evaluationApiClient == null)
+            evaluationApiClient = FindFirstObjectByType<EvaluationApiClient>();
+
+        if (evaluationApiClient == null)
+        {
+            Debug.LogWarning("No EvaluationApiClient found. Surgery export was saved locally, but evaluation API was not called.");
+            if (statusText != null)
+                statusText.text = "Exported locally. No EvaluationApiClient found.";
+            yield break;
+        }
+
+        GameFlowEvaluationResponse response = null;
+        string error = null;
+
+        yield return evaluationApiClient.SubmitExportedSurgery(
+            sessionId,
+            defaultTaskId,
+            defaultPlayerId,
+            defaultPlayerName,
+            snapshot.json,
+            snapshot.pngBytes,
+            result => response = result,
+            err => error = err);
+
+        if (response != null && response.success)
+        {
+            Debug.Log("Evaluation API success: " + response.message);
+            if (statusText != null)
+                statusText.text = $"Evaluation complete. Score: {response.total_score:0.#}";
+        }
+        else
+        {
+            Debug.LogWarning("Evaluation API failed: " + error);
+            if (statusText != null)
+                statusText.text = "Evaluation API failed. Exported files are still saved locally.";
+        }
     }
 
     private BlurRegion BuildBlurRegionForShot(Vector2Int point, LaserShotMetrics metrics)

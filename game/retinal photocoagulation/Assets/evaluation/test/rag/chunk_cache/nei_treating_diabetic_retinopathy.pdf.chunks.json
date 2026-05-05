@@ -1,0 +1,268 @@
+{
+  "source_file": "nei_treating_diabetic_retinopathy.pdf",
+  "sha256": "235c704ae67a27f9f34dcd9589fc50c6c122552af07becf9765713ed3f895fbc",
+  "chunks": [
+    {
+      "chunk_id": "235c704ae67a27f9_p001_c001",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 1,
+      "page_end": 1,
+      "title": "This can lead to vision loss in two ways",
+      "disease_tags": [
+        "diabetic_retinopathy",
+        "retina",
+        "糖尿病视网膜病变"
+      ],
+      "score_tags": [
+        "missed_area",
+        "position_coverage",
+        "retinal_sealing",
+        "risk_explanation",
+        "safety_boundary"
+      ],
+      "keywords": [
+        "retina",
+        "diabetic retinopathy",
+        "macula",
+        "scar",
+        "vision loss"
+      ],
+      "source_quote": "What You Should Know Treating Diabetic Retinopathy Fact Sheet Diabetic retinopathy occurs when diabetes damages the tiny blood vessels inside the retina— the light-sensitive tissue at the back of the eye. This can lead to vision loss in two",
+      "summary": "What You Should Know Treating Diabetic Retinopathy Fact Sheet Diabetic retinopathy occurs when diabetes damages the tiny blood vessels inside the retina— the light-sensitive tissue at the back of the eye. This can lead to vision loss in two ways. In the most severe form of diabetic retinopathy, call",
+      "text": "What You Should Know Treating Diabetic Retinopathy Fact Sheet Diabetic retinopathy occurs when diabetes damages the tiny blood vessels inside the retina— the light-sensitive tissue at the back of the eye. This can lead to vision loss in two ways. In the most severe form of diabetic retinopathy, called proliferative diabetic retinopathy (PDR), abnormal new blood vessels and scar tissue form on the surface of the retina. The blood vessels damaged by diabetic retinopathy may also swell and leak fluid into the macula, the part of the retina used for straight-ahead vision. This condition is called diabetic macular edema (DME). How People With Diabetes Can Protect Their Vision Because diabetic retinopathy often lacks early symptoms, you may not know you have it. People with diabetes should get a comprehensive dilated eye exam at least once a year to help detect the disease in its early stages."
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p001_c002",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 1,
+      "page_end": 1,
+      "title": "Sometimes, vision lost due to diabetic retinopathy cannot be regained",
+      "disease_tags": [
+        "diabetic_retinopathy",
+        "糖尿病视网膜病变"
+      ],
+      "score_tags": [],
+      "keywords": [
+        "diabetic retinopathy",
+        "vision loss"
+      ],
+      "source_quote": "iabetes should get a comprehensive dilated eye exam at least once a year to help detect the disease in its early stages. Sometimes, vision lost due to diabetic retinopathy cannot be regained. However, with early detection and treatment, you",
+      "summary": "iabetes should get a comprehensive dilated eye exam at least once a year to help detect the disease in its early stages. Sometimes, vision lost due to diabetic retinopathy cannot be regained. However, with early detection and treatment, you can reduce your risk of blindness by 95 percent. Controllin",
+      "text": "iabetes should get a comprehensive dilated eye exam at least once a year to help detect the disease in its early stages. Sometimes, vision lost due to diabetic retinopathy cannot be regained. However, with early detection and treatment, you can reduce your risk of blindness by 95 percent. Controlling diabetes may help slow the progression of diabetic retinopathy. Keeping your blood glucose level as close to normal as possible reduces the risk of developing diabetic retinopathy, as well as kidney and nerve diseases. Also, controlling high blood pressure and cholesterol, not smoking, and maintaining a healthy weight can reduce the risk of vision loss. When Treatment Is Needed If you are diagnosed with nonproliferative diabetic retinopathy—an early stage of the disease—you may not need treatment. However, more frequent comprehensive dilated eye exams—as often as every two to four months—may"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p001_c003",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 1,
+      "page_end": 1,
+      "title": "may not need treatment",
+      "disease_tags": [
+        "diabetic_retinopathy",
+        "糖尿病视网膜病变"
+      ],
+      "score_tags": [],
+      "keywords": [
+        "diabetic retinopathy"
+      ],
+      "source_quote": "may not need treatment. However, more frequent comprehensive dilated eye exams—as often as every two to four months—may be advised by your eye care professional to check for worsening of the disease. If your condition advances to either PDR",
+      "summary": "may not need treatment. However, more frequent comprehensive dilated eye exams—as often as every two to four months—may be advised by your eye care professional to check for worsening of the disease. If your condition advances to either PDR or DME, then treatment may be necessary. Normal Vision Visi",
+      "text": "may not need treatment. However, more frequent comprehensive dilated eye exams—as often as every two to four months—may be advised by your eye care professional to check for worsening of the disease. If your condition advances to either PDR or DME, then treatment may be necessary. Normal Vision Vision With Diabetic Retinopathy What Are the Numbers?1 • Nearly 7.7 million people ages 40 and older have diabetic retinopathy, and this number is projected to increase to more than 11 million by 2030. • Almost 1.2 million Hispanics/Latinos have diabetic retinopathy, and this number is expected to reach 3 million by 2030. • More than 800,000 African Americans have diabetic retinopathy, and this number will likely exceed 1 million by 2030. 1 National Eye Institute. Projections for Diabetic Retinopathy (2010–2030–2050), 2012. Available at https://nei.nih.gov/eyedata/diabetic#5."
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p002_c001",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 2,
+      "page_end": 2,
+      "title": "Treatment Options for DME DME can be treated with several th",
+      "disease_tags": [
+        "retina"
+      ],
+      "score_tags": [
+        "missed_area",
+        "position_coverage",
+        "retinal_sealing"
+      ],
+      "keywords": [
+        "retina",
+        "vision loss"
+      ],
+      "source_quote": "Treatment Options for DME DME can be treated with several therapies that may be used alone or in combination with others. Injection Therapy In DME, a protein called vascular endothelial growth factor (VEGF) causes blood vessels in the retin",
+      "summary": "Treatment Options for DME DME can be treated with several therapies that may be used alone or in combination with others. Injection Therapy In DME, a protein called vascular endothelial growth factor (VEGF) causes blood vessels in the retina to leak fluid. Anti-VEGF drugs can be injected into the ey",
+      "text": "Treatment Options for DME DME can be treated with several therapies that may be used alone or in combination with others. Injection Therapy In DME, a protein called vascular endothelial growth factor (VEGF) causes blood vessels in the retina to leak fluid. Anti-VEGF drugs can be injected into the eye to block the VEGF protein, decrease fluid in the retina, and improve the chances of retaining and even gaining vision. Available anti- VEGF drugs include Avastin® (bevacizumab), Eylea® (aflibercept), and Lucentis® (ranibizumab). Research sponsored by the National Eye Institute (NEI) compared Avastin®, Eylea®, and Lucentis® in a clinical trial. The study found all three drugs to be safe and effective for treating most people with DME-related vision loss. Compared with the other two drugs, Eylea® was more likely on average to improve vision for people with moderate or worse vision loss over on"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p002_c002",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 2,
+      "page_end": 2,
+      "title": "These injections are performed in the doctor’s office",
+      "disease_tags": [
+        "retina"
+      ],
+      "score_tags": [
+        "laser_photocoagulation",
+        "missed_area",
+        "position_coverage",
+        "retinal_sealing",
+        "spatial_parameter_adaptation"
+      ],
+      "keywords": [
+        "laser",
+        "retina",
+        "vision loss"
+      ],
+      "source_quote": "her two drugs, Eylea® was more likely on average to improve vision for people with moderate or worse vision loss over one year of treatment. These three drugs vary in cost and in how often they need to be injected, so you may wish to discus",
+      "summary": "her two drugs, Eylea® was more likely on average to improve vision for people with moderate or worse vision loss over one year of treatment. These three drugs vary in cost and in how often they need to be injected, so you may wish to discuss these issues with your ophthalmologist. Many people requir",
+      "text": "her two drugs, Eylea® was more likely on average to improve vision for people with moderate or worse vision loss over one year of treatment. These three drugs vary in cost and in how often they need to be injected, so you may wish to discuss these issues with your ophthalmologist. Many people require monthly anti-VEGF injections for the first six months of treatment. Thereafter, injections typically are needed less frequently, with most people needing few or none by four to five years after starting therapy. These injections are performed in the doctor’s office. Comprehensive dilated eye exams also may be needed less often as the disease stabilizes. Focal/Grid Laser Surgery This type of treatment applies small laser burns to leaking blood vessels to help slow the leakage of fluid and reduce swelling in the retina. The procedure is usually completed in one session, but some people may nee"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p002_c003",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 2,
+      "page_end": 2,
+      "title": "e of fluid and reduce swelling in the retina",
+      "disease_tags": [
+        "retina"
+      ],
+      "score_tags": [
+        "laser_photocoagulation",
+        "missed_area",
+        "position_coverage",
+        "retinal_sealing",
+        "spatial_parameter_adaptation",
+        "spot_distribution"
+      ],
+      "keywords": [
+        "laser",
+        "retina",
+        "scatter laser"
+      ],
+      "source_quote": "e of fluid and reduce swelling in the retina. The procedure is usually completed in one session, but some people may need more than one treatment. Focal/grid laser surgery is sometimes conducted before anti-VEGF injections, sometimes on the",
+      "summary": "e of fluid and reduce swelling in the retina. The procedure is usually completed in one session, but some people may need more than one treatment. Focal/grid laser surgery is sometimes conducted before anti-VEGF injections, sometimes on the same day or a few days after an anti-VEGF injection, and so",
+      "text": "e of fluid and reduce swelling in the retina. The procedure is usually completed in one session, but some people may need more than one treatment. Focal/grid laser surgery is sometimes conducted before anti-VEGF injections, sometimes on the same day or a few days after an anti-VEGF injection, and sometimes only when DME fails to respond to anti-VEGF therapy. Corticosteroids Corticosteroids, a class of drugs that control inflammation, can be used to treat DME. They include short-acting injections and biodegradable implants for longer sustained release. Corticosteroid use in the eye increases the risk of cataract and glaucoma. Patients who use corticosteroids should be monitored for increased eye pressure and glaucoma, and for cataract if they have not had cataract surgery previously. Treatment Options for PDR Scatter laser treatment has been the standard treatment for PDR for decades. Thi"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p002_c004",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 2,
+      "page_end": 2,
+      "title": "y previously",
+      "disease_tags": [
+        "retina"
+      ],
+      "score_tags": [
+        "laser_photocoagulation",
+        "risk_explanation",
+        "safety_boundary",
+        "spatial_parameter_adaptation",
+        "spot_distribution"
+      ],
+      "keywords": [
+        "laser",
+        "retina",
+        "scatter laser",
+        "macula",
+        "vision loss"
+      ],
+      "source_quote": "y previously. Treatment Options for PDR Scatter laser treatment has been the standard treatment for PDR for decades. This treatment involves making tiny laser burns in areas of the retina away from the macula to shrink abnormal blood vessel",
+      "summary": "y previously. Treatment Options for PDR Scatter laser treatment has been the standard treatment for PDR for decades. This treatment involves making tiny laser burns in areas of the retina away from the macula to shrink abnormal blood vessels. Scatter laser treatment may require more than one session",
+      "text": "y previously. Treatment Options for PDR Scatter laser treatment has been the standard treatment for PDR for decades. This treatment involves making tiny laser burns in areas of the retina away from the macula to shrink abnormal blood vessels. Scatter laser treatment may require more than one session. While it can preserve central vision, it may cause some loss of side, color, and night vision. It also can cause worsening of pre-existing DME. Recent studies have shown that anti-VEGF treatment is also effective for slowing the progression of PDR. Anti-VEGF treatment does not have the vision side effects seen with laser, but does have the risks associated with injections into the eye, such as infection. If you have PDR, talk with your doctor about whether scatter laser or anti-VEGF is the better choice for you. Diabetic Eye Disease Diabetes can cause vision loss and blindness from diabetic"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p002_c005",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 2,
+      "page_end": 2,
+      "title": "anti-VEGF is the better choice for you",
+      "disease_tags": [
+        "diabetic_retinopathy",
+        "糖尿病视网膜病变"
+      ],
+      "score_tags": [],
+      "keywords": [
+        "diabetic retinopathy",
+        "vision loss"
+      ],
+      "source_quote": "anti-VEGF is the better choice for you. Diabetic Eye Disease Diabetes can cause vision loss and blindness from diabetic eye disease. Diabetic eye disease includes diabetic retinopathy, cataract, and glaucoma. Diabetic retinopathy is the mos",
+      "summary": "anti-VEGF is the better choice for you. Diabetic Eye Disease Diabetes can cause vision loss and blindness from diabetic eye disease. Diabetic eye disease includes diabetic retinopathy, cataract, and glaucoma. Diabetic retinopathy is the most common diabetic eye disease and the leading cause of visio",
+      "text": "anti-VEGF is the better choice for you. Diabetic Eye Disease Diabetes can cause vision loss and blindness from diabetic eye disease. Diabetic eye disease includes diabetic retinopathy, cataract, and glaucoma. Diabetic retinopathy is the most common diabetic eye disease and the leading cause of vision loss and blindness in adults 20–74 years of age."
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p003_c001",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 3,
+      "page_end": 3,
+      "title": "The procedure is done under local or general anesthesia",
+      "disease_tags": [
+        "retina"
+      ],
+      "score_tags": [
+        "laser_photocoagulation",
+        "missed_area",
+        "position_coverage",
+        "retinal_sealing",
+        "spatial_parameter_adaptation"
+      ],
+      "keywords": [
+        "laser",
+        "retina"
+      ],
+      "source_quote": "Other Treatment Options If there is severe bleeding into the eye or retinal detachment from PDR, a surgery called vitrectomy may be performed to remove the vitreous (the gel-like substance that fills the center of the eye) and laser may be ",
+      "summary": "Other Treatment Options If there is severe bleeding into the eye or retinal detachment from PDR, a surgery called vitrectomy may be performed to remove the vitreous (the gel-like substance that fills the center of the eye) and laser may be applied during the surgery. The procedure is done under loca",
+      "text": "Other Treatment Options If there is severe bleeding into the eye or retinal detachment from PDR, a surgery called vitrectomy may be performed to remove the vitreous (the gel-like substance that fills the center of the eye) and laser may be applied during the surgery. The procedure is done under local or general anesthesia. Depending on the level of monitoring needed afterward, vitrectomy may require an overnight stay in the hospital, although the majority is done on an outpatient basis. After treatment, the eye may be covered with a patch at night and may be red and sore. Drops are applied for several weeks to the eye to reduce inflammation and the risk of infection. The surgeon will follow recovery of the eye during the postoperative period. How To Find Help If treatment fails to improve vision, ask for a referral to a low vision specialist. Vision rehabilitation can help you learn abou"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p003_c002",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 3,
+      "page_end": 3,
+      "title": "nt fails to improve vision, ask for a referral to a low vision specialist",
+      "disease_tags": [
+        "diabetic_retinopathy",
+        "糖尿病视网膜病变"
+      ],
+      "score_tags": [],
+      "keywords": [
+        "diabetic retinopathy"
+      ],
+      "source_quote": "nt fails to improve vision, ask for a referral to a low vision specialist. Vision rehabilitation can help you learn about strategies and devices to make the most of your remaining sight. You can also check with a nearby school of medicine o",
+      "summary": "nt fails to improve vision, ask for a referral to a low vision specialist. Vision rehabilitation can help you learn about strategies and devices to make the most of your remaining sight. You can also check with a nearby school of medicine or optometry. Many community organizations and agencies offer",
+      "text": "nt fails to improve vision, ask for a referral to a low vision specialist. Vision rehabilitation can help you learn about strategies and devices to make the most of your remaining sight. You can also check with a nearby school of medicine or optometry. Many community organizations and agencies offer information about low vision counseling, training, and other special services for people with visual impairment. Free Diabetic Retinopathy Resources NEI’s National Eye Health Education Program (NEHEP) has a variety of educational materials to help you learn more and share information about diabetic retinopathy. • Diabetic Retinopathy: What You Should Know Booklet— This booklet describes causes, symptoms, diagnosis, and treatment and provides answers to commonly asked questions about the disease. • Diabetic Retinopathy Animation—Watch and share this animated explanation of what happens to the"
+    },
+    {
+      "chunk_id": "235c704ae67a27f9_p003_c003",
+      "source_file": "nei_treating_diabetic_retinopathy.pdf",
+      "source_type": "pdf",
+      "page_start": 3,
+      "page_end": 3,
+      "title": "ns about the disease",
+      "disease_tags": [
+        "diabetic_retinopathy",
+        "retina",
+        "糖尿病视网膜病变"
+      ],
+      "score_tags": [
+        "risk_explanation",
+        "safety_boundary"
+      ],
+      "keywords": [
+        "retina",
+        "diabetic retinopathy",
+        "macula"
+      ],
+      "source_quote": "ns about the disease. • Diabetic Retinopathy Animation—Watch and share this animated explanation of what happens to the retina with diabetic retinopathy. • Diabetic Eye Disease Infographics and Infocards— Share these through social media, o",
+      "summary": "ns about the disease. • Diabetic Retinopathy Animation—Watch and share this animated explanation of what happens to the retina with diabetic retinopathy. • Diabetic Eye Disease Infographics and Infocards— Share these through social media, on websites, and in publications and newsletters to inform pe",
+      "text": "ns about the disease. • Diabetic Retinopathy Animation—Watch and share this animated explanation of what happens to the retina with diabetic retinopathy. • Diabetic Eye Disease Infographics and Infocards— Share these through social media, on websites, and in publications and newsletters to inform people about eye diseases associated with diabetes. • Diabetic Macular Edema Video—See how treatment of diabetic macular edema can improve vision. To find these and other resources, visit the NEHEP Diabetic Eye Disease Education Program website at http://www.nei.nih.gov/nehep/ programs/diabeticeyedisease."
+    }
+  ]
+}

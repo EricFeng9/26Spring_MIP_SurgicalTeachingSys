@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using RetinalPrototype.Hub;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -52,6 +53,7 @@ namespace RetinalPrototype
 
         private void Start()
         {
+            GameFlowSession.Instance.BeginSurgerySession();
             _defaultPixelToUm = pixelToUm;
             EnsureReferences();
 
@@ -429,6 +431,15 @@ namespace RetinalPrototype
 
             RenderLaserSpot(_workingTexture, px, py, power, durationMs / 1000f, spotSizeUm, wavelength, pixelToUm);
             _workingTexture.Apply(false);
+            GameFlowSession.Instance.RecordShot(
+                new Vector2(px, py),
+                false,
+                0,
+                power,
+                spotSizeUm,
+                durationMs,
+                wavelength
+            );
 
             TriggerShotFlash();
 

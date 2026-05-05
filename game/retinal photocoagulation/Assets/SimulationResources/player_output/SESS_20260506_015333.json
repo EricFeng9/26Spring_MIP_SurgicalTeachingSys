@@ -1,0 +1,235 @@
+{
+    "session_id": "SESS_20260506_015333",
+    "task_id": "T001_RP_Standard",
+    "player_info": {
+        "id": "ST_001",
+        "name": "Operator"
+    },
+    "shots": [
+        {
+            "id": 1,
+            "pos": [
+                800.0,
+                872.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 2,
+            "pos": [
+                748.0,
+                821.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 3,
+            "pos": [
+                726.0,
+                758.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 4,
+            "pos": [
+                778.0,
+                706.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 5,
+            "pos": [
+                806.0,
+                648.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 6,
+            "pos": [
+                878.0,
+                576.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 7,
+            "pos": [
+                982.0,
+                571.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 8,
+            "pos": [
+                999.0,
+                622.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 9,
+            "pos": [
+                999.0,
+                674.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 10,
+            "pos": [
+                942.0,
+                774.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 11,
+            "pos": [
+                894.0,
+                803.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 12,
+            "pos": [
+                823.0,
+                779.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 13,
+            "pos": [
+                844.0,
+                700.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 14,
+            "pos": [
+                908.0,
+                685.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        },
+        {
+            "id": 15,
+            "pos": [
+                1021.0,
+                783.0
+            ],
+            "radius_px": 4.857277870178223,
+            "is_trial": false,
+            "params": {
+                "power": 541.5189819335938,
+                "spot_size": 200.0,
+                "exposure_time": 429.2182922363281,
+                "wavelength": 532.0
+            }
+        }
+    ]
+}

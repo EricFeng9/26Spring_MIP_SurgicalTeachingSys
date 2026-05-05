@@ -36,6 +36,7 @@ namespace RetinalPrototype.Hub.Phone
         [SerializeField] private GameObject decisionRoot;
         [SerializeField] private Button yesButton;
         [SerializeField] private Button noButton;
+        [SerializeField] private TMP_Dropdown diseaseDropdown;
         [SerializeField] private string fallbackYesSceneName;
         [SerializeField] private string fallbackNoSceneName;
 
@@ -269,6 +270,17 @@ namespace RetinalPrototype.Hub.Phone
         private void HandleDecision(bool isYes)
         {
             PhoneTaskData task = GetCurrentTask();
+            if (task != null)
+            {
+                GameFlowSession.Instance.StartTask(new GameFlowTaskInfo
+                {
+                    task_id = task.taskId,
+                    disease_category = task.diseaseCategory
+                });
+
+                GameFlowSession.Instance.RecordConsultationDecision(GetSelectedDisease(task), isYes);
+            }
+
             string targetScene = isYes
                 ? (!string.IsNullOrEmpty(task != null ? task.yesSceneName : null) ? task.yesSceneName : fallbackYesSceneName)
                 : (!string.IsNullOrEmpty(task != null ? task.noSceneName : null) ? task.noSceneName : fallbackNoSceneName);
@@ -306,6 +318,19 @@ namespace RetinalPrototype.Hub.Phone
             }
 
             return tasks[_currentTaskIndex];
+        }
+
+        private string GetSelectedDisease(PhoneTaskData task)
+        {
+            if (diseaseDropdown != null && diseaseDropdown.options != null && diseaseDropdown.options.Count > 0)
+            {
+                int index = Mathf.Clamp(diseaseDropdown.value, 0, diseaseDropdown.options.Count - 1);
+                return diseaseDropdown.options[index].text;
+            }
+
+            return task != null && !string.IsNullOrWhiteSpace(task.selectedDiseaseWhenAccepted)
+                ? task.selectedDiseaseWhenAccepted
+                : "未选择";
         }
 
         private void SetPanelVisible(bool visible)
