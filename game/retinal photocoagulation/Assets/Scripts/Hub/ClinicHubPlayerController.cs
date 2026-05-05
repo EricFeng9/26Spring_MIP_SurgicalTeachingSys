@@ -51,6 +51,8 @@ namespace RetinalPrototype.Hub
 
             rb.gravityScale = 0f;
             rb.freezeRotation = true;
+
+            ClinicHubReturnState.ConsumePose(this);
         }
 
         private void Update()
@@ -130,6 +132,11 @@ namespace RetinalPrototype.Hub
             {
                 spriteRenderer.flipX = !_facingRight;
             }
+        }
+
+        public bool IsFacingRight()
+        {
+            return _facingRight;
         }
 
         private void UpdateMoveInput()
