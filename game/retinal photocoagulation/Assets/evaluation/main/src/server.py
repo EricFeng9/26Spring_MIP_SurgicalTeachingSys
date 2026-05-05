@@ -28,7 +28,7 @@ def _project_eval_root() -> str:
 
 def _unity_project_root() -> str:
     # Assets/evaluation -> Unity project root.
-    return os.path.abspath(os.path.join(_project_eval_root(), ".."))
+    return os.path.abspath(os.path.join(_project_eval_root(), "..", ".."))
 
 
 def _sample_data_dir() -> str:
@@ -512,6 +512,7 @@ def run() -> None:
     print(f"Local evaluation server running at http://{HOST}:{PORT}")
     print("Health check: http://127.0.0.1:8000/health")
     print("Evaluate API: POST http://127.0.0.1:8000/evaluate")
+    print(f"Output dir: {_output_dir()}")
     print("Mode: try real evaluator first; fallback to demo response if it fails.")
     server.serve_forever()
 

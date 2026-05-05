@@ -1677,10 +1677,9 @@ private void RebuildBlurTextureIfNeeded(bool force = false, bool fullRebuild = f
 
         if (evaluationApiClient == null)
         {
-            Debug.LogWarning("No EvaluationApiClient found. Surgery export was saved locally, but evaluation API was not called.");
-            if (statusText != null)
-                statusText.text = "Exported locally. No EvaluationApiClient found.";
-            yield break;
+            GameObject clientObject = new GameObject(nameof(EvaluationApiClient));
+            evaluationApiClient = clientObject.AddComponent<EvaluationApiClient>();
+            Debug.LogWarning("No EvaluationApiClient found in scene. Created a runtime EvaluationApiClient with the default local API URL.");
         }
 
         GameFlowEvaluationResponse response = null;

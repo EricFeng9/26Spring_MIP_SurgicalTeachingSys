@@ -38,7 +38,7 @@ namespace RetinalPrototype.Hub
                 return latestDiskRecord;
             }
 
-            return _instance != null ? _instance._latestRecord : null;
+            return null;
         }
 
         private static void EnsureInstance()
@@ -103,9 +103,9 @@ namespace RetinalPrototype.Hub
                 caseText = BuildScoreSummary(score),
                 standardSpotImage = LoadSpriteFromPng(Path.Combine(sessionDir, "score_result_gt_overlay.png")),
                 playerSpotImage = LoadSpriteFromPng(Path.Combine(sessionDir, "score_result_player_overlay.png")),
-                advantages = !string.IsNullOrWhiteSpace(feedback?.advantage) ? NormalizeFeedbackText(feedback.advantage) : BuildRuleAdvantage(score),
-                disadvantages = !string.IsNullOrWhiteSpace(feedback?.disadvantage) ? NormalizeFeedbackText(feedback.disadvantage) : BuildRuleDisadvantage(score),
-                improvementAdvice = !string.IsNullOrWhiteSpace(feedback?.improvement) ? NormalizeFeedbackText(feedback.improvement) : BuildRuleImprovement(score)
+                advantages = NormalizeFeedbackText("优点", !string.IsNullOrWhiteSpace(feedback?.advantage) ? feedback.advantage : BuildRuleAdvantage(score)),
+                disadvantages = NormalizeFeedbackText("缺点", !string.IsNullOrWhiteSpace(feedback?.disadvantage) ? feedback.disadvantage : BuildRuleDisadvantage(score)),
+                improvementAdvice = NormalizeFeedbackText("改进建议", !string.IsNullOrWhiteSpace(feedback?.improvement) ? feedback.improvement : BuildRuleImprovement(score))
             };
         }
 
@@ -114,14 +114,7 @@ namespace RetinalPrototype.Hub
             string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
             string projectOutput = Path.Combine(projectRoot, "EvaluationOutput", "unity_http");
 
-            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string legacyLocalOutput = string.IsNullOrWhiteSpace(localAppData)
-                ? string.Empty
-                : Path.Combine(localAppData, "RetinalPhotocoagulation", "EvaluationOutput", "unity_http");
-
-            // Prefer the project/exe-adjacent output. Keep LocalAppData as a
-            // migration fallback for records generated before the path change.
-            return new[] { projectOutput, legacyLocalOutput };
+            return new[] { projectOutput };
         }
 
         private static T ReadJsonFile<T>(string path) where T : class
@@ -222,33 +215,51 @@ namespace RetinalPrototype.Hub
             return string.IsNullOrWhiteSpace(value) ? "暂无" : value;
         }
 
-        private static string NormalizeFeedbackText(string value)
+        private static string NormalizeFeedbackText(string title, string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            string body = string.IsNullOrWhiteSpace(value) ? "暂无" : value.Trim();
+            string[] knownTitles =
             {
-                return value;
-            }
-
-            string text = value.Trim();
-            string[] prefixes =
-            {
-                "本次模拟的优点：",
-                "本次模拟的优点:",
-                "本次模拟的缺点：",
-                "本次模拟的缺点:",
-                "改进建议：",
-                "改进建议:"
+                "本次诊疗的优点",
+                "本次模拟的优点",
+                "本次手术的优点",
+                "本次治疗的优点",
+                "优点",
+                "本次诊疗的缺点",
+                "本次模拟的缺点",
+                "本次手术的缺点",
+                "本次治疗的缺点",
+                "缺点",
+                "本次诊疗的改进建议",
+                "本次模拟的改进建议",
+                "本次手术的改进建议",
+                "本次治疗的改进建议",
+                "改进建议",
+                "建议"
             };
 
-            foreach (string prefix in prefixes)
+            foreach (string knownTitle in knownTitles)
             {
-                if (text.StartsWith(prefix, StringComparison.Ordinal))
+                if (!body.StartsWith(knownTitle, StringComparison.Ordinal))
                 {
-                    return prefix.TrimEnd('：', ':') + "\n" + text.Substring(prefix.Length).TrimStart();
+                    continue;
+                }
+
+                int restStart = knownTitle.Length;
+                while (restStart < body.Length && char.IsWhiteSpace(body[restStart]))
+                {
+                    restStart++;
+                }
+
+                if (restStart < body.Length && (body[restStart] == '：' || body[restStart] == ':'))
+                {
+                    restStart++;
+                    body = body.Substring(restStart).TrimStart();
+                    break;
                 }
             }
 
-            return text;
+            return title + "\n" + body;
         }
 
         private static string FormatScore(ScoreDimension dimension)

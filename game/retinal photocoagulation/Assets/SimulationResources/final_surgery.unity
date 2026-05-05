@@ -12151,6 +12151,79 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 918418307}
   m_CullTransparentMesh: 1
+--- !u!1 &918628717
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 918628720}
+  - component: {fileID: 918628719}
+  - component: {fileID: 918628718}
+  m_Layer: 0
+  m_Name: EvaluationManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &918628718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 918628717}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5dd0f148594c988201b1b2a5377a70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  apiClient: {fileID: 0}
+  fallbackStandardImage: {fileID: 0}
+  fallbackPlayerImage: {fileID: 0}
+  onSubmitStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onSubmitSucceeded:
+    m_PersistentCalls:
+      m_Calls: []
+  onSubmitFailed:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &918628719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 918628717}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cd35690236b4c828de6a4c0f247f0b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  apiUrl: http://127.0.0.1:8000/evaluate
+  requestTimeoutSeconds: 120
+  alsoWriteLocalDebugFiles: 1
+  localDebugFolderName: EvaluationDebug
+--- !u!4 &918628720
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 918628717}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 762.68835, y: 716.1311, z: -4.5317974}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &925241734
 GameObject:
   m_ObjectHideFlags: 0
@@ -14965,7 +15038,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 521077045}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.32279724
+  m_Size: 0.32279727
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -20847,6 +20920,8 @@ MonoBehaviour:
   defaultTaskId: T001_RP_Standard
   defaultPlayerId: ST_001
   defaultPlayerName: Operator
+  submitExportToEvaluationApi: 1
+  evaluationApiClient: {fileID: 0}
   fireKey: 32
   defaultPixelToUm: 2
   blurRadiusForFocusLayer: 5
@@ -29924,3 +29999,4 @@ SceneRoots:
   - {fileID: 1629618396}
   - {fileID: 1887304608}
   - {fileID: 275807326}
+  - {fileID: 918628720}

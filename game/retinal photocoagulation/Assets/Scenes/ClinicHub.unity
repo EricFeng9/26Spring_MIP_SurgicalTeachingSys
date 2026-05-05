@@ -7380,7 +7380,7 @@ MonoBehaviour:
   disadvantagesText: {fileID: 1070674059}
   improvementAdviceText: {fileID: 1516373775}
   parameterPanel: {fileID: 0}
-  useFallbackWhenNoRuntimeRecord: 1
+  useFallbackWhenNoRuntimeRecord: 0
   fallbackRecord:
     caseId: "\u75C5\u4F8B#001"
     diagnosis: "\u672A\u586B\u5199"

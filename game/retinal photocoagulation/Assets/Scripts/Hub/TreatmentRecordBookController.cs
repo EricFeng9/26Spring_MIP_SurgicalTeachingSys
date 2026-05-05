@@ -29,7 +29,7 @@ namespace RetinalPrototype.Hub
         [SerializeField] private TreatmentParameterPanelController parameterPanel;
 
         [Header("Fallback Preview Data")]
-        [SerializeField] private bool useFallbackWhenNoRuntimeRecord = true;
+        [SerializeField] private bool useFallbackWhenNoRuntimeRecord = false;
         [SerializeField] private TreatmentRecordData fallbackRecord = new TreatmentRecordData();
 
         private TreatmentRecordData _currentRecord;
