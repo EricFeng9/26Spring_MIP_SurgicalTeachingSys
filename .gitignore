@@ -32,3 +32,6 @@ game/retinal photocoagulation/Assets/SimulationResources/player_output/SESS_2026
 game/retinal photocoagulation/Assets/SimulationResources/player_output/SESS_20260503_215534.json.meta
 game/retinal photocoagulation/Assets/SimulationResources/player_output/SESS_20260503_215534.png
 game/retinal photocoagulation/Assets/SimulationResources/player_output/SESS_20260503_215534.png.meta
+game/retinal photocoagulation/Assets/SimulationResources/player_output/SESS_20260505_210854.json
+.gitignore
+game/retinal photocoagulation/Assets/SimulationResources/player_output/SESS_20260505_210854.png
