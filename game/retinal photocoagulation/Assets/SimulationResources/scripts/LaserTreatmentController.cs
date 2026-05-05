@@ -458,7 +458,71 @@ public class LaserTreatmentController : MonoBehaviour
     //     RefreshInfoBar(force: true);
     //     RefreshStatus(parameters, lastMetrics);
     // }
-private void Fire(LaserShotParameters parameters)
+// private void Fire(LaserShotParameters parameters)
+//     {
+//         if (physicalModel == null)
+//             physicalModel = new LaserPhysicalModel();
+
+//         if (workingTexture == null || fovController == null || !fovController.IsReady)
+//             return;
+
+//         float pixelToUm = GetEffectivePixelToUm();
+//         Vector2Int aimPoint = GetCurrentAimPointTopLeft();
+//         List<Vector2Int> shotPoints = BuildShotPoints(aimPoint, parameters, pixelToUm);
+//         LaserShotMetrics previewMetrics = physicalModel.Compute(parameters, pixelToUm);
+//         List<Vector2Int> validShotPoints = new List<Vector2Int>(shotPoints.Count);
+
+//         // 已废弃旧逻辑：BlurRegion mergedUndoRegion = default;
+//         for (int i = 0; i < shotPoints.Count; i++)
+//         {
+//             Vector2Int pt = shotPoints[i];
+//             if (pt.x < 0 || pt.y < 0 || pt.x >= workingTexture.width || pt.y >= workingTexture.height)
+//                 continue;
+
+//             validShotPoints.Add(pt);
+//             // 已废弃旧逻辑：MergeBlurRegion(ref mergedUndoRegion, BuildRenderRegionForShot(pt, previewMetrics));
+//         }
+
+//         if (validShotPoints.Count <= 0)
+//             return;
+
+//         // 已废弃旧逻辑：UndoShotSnapshot actionUndoSnapshot = CaptureUndoSnapshot(mergedUndoRegion, validShotPoints.Count);
+
+//         LaserShotMetrics lastMetrics = default;
+//         // 已废弃旧逻辑：BlurRegion mergedBlurRegion = default;
+
+//         foreach (Vector2Int pt in validShotPoints)
+//         {
+//             lastMetrics = LaserSpotRenderer.RenderShot(
+//                 workingTexture,
+//                 pt,
+//                 parameters,
+//                 physicalModel,
+//                 pixelToUm
+//             );
+
+//             // 已废弃旧逻辑：MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
+//             shotCount++;
+//             shotHistory.Add(BuildShotRecord(shotCount, pt, parameters, lastMetrics));
+//         }
+
+//         // 已废弃旧逻辑：修复编译报错，这里不再引用被注释掉的 actionUndoSnapshot 变量
+//         /*
+//         if (actionUndoSnapshot.IsValid)
+//         {
+//             actionUndoSnapshot.blurRegion = mergedBlurRegion;
+//             undoShotHistory.Add(actionUndoSnapshot);
+//         }
+//         */
+
+//         TriggerShotFlash();
+//         lastComputedGrade = lastMetrics.grade;
+//         // 已废弃旧逻辑：QueueBlurRebuild(mergedBlurRegion);
+//         RefreshInfoBar(force: true);
+//         RefreshStatus(parameters, lastMetrics);
+//     }
+    
+    private void Fire(LaserShotParameters parameters)
     {
         if (physicalModel == null)
             physicalModel = new LaserPhysicalModel();
@@ -472,7 +536,6 @@ private void Fire(LaserShotParameters parameters)
         LaserShotMetrics previewMetrics = physicalModel.Compute(parameters, pixelToUm);
         List<Vector2Int> validShotPoints = new List<Vector2Int>(shotPoints.Count);
 
-        // 已废弃旧逻辑：BlurRegion mergedUndoRegion = default;
         for (int i = 0; i < shotPoints.Count; i++)
         {
             Vector2Int pt = shotPoints[i];
@@ -480,16 +543,15 @@ private void Fire(LaserShotParameters parameters)
                 continue;
 
             validShotPoints.Add(pt);
-            // 已废弃旧逻辑：MergeBlurRegion(ref mergedUndoRegion, BuildRenderRegionForShot(pt, previewMetrics));
         }
 
         if (validShotPoints.Count <= 0)
             return;
 
-        // 已废弃旧逻辑：UndoShotSnapshot actionUndoSnapshot = CaptureUndoSnapshot(mergedUndoRegion, validShotPoints.Count);
-
         LaserShotMetrics lastMetrics = default;
-        // 已废弃旧逻辑：BlurRegion mergedBlurRegion = default;
+        
+        // 恢复：声明合并的模糊区域
+        BlurRegion mergedBlurRegion = default;
 
         foreach (Vector2Int pt in validShotPoints)
         {
@@ -501,23 +563,19 @@ private void Fire(LaserShotParameters parameters)
                 pixelToUm
             );
 
-            // 已废弃旧逻辑：MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
+            // 恢复：收集当前光斑的脏矩形区域
+            MergeBlurRegion(ref mergedBlurRegion, BuildBlurRegionForShot(pt, lastMetrics));
+            
             shotCount++;
             shotHistory.Add(BuildShotRecord(shotCount, pt, parameters, lastMetrics));
         }
 
-        // 已废弃旧逻辑：修复编译报错，这里不再引用被注释掉的 actionUndoSnapshot 变量
-        /*
-        if (actionUndoSnapshot.IsValid)
-        {
-            actionUndoSnapshot.blurRegion = mergedBlurRegion;
-            undoShotHistory.Add(actionUndoSnapshot);
-        }
-        */
-
         TriggerShotFlash();
         lastComputedGrade = lastMetrics.grade;
-        // 已废弃旧逻辑：QueueBlurRebuild(mergedBlurRegion);
+        
+        // 恢复：将受影响的脏矩形区域推入队列，触发下一帧的局部模糊更新
+        QueueBlurRebuild(mergedBlurRegion);
+        
         RefreshInfoBar(force: true);
         RefreshStatus(parameters, lastMetrics);
     }
@@ -1403,7 +1461,39 @@ private void UndoLastShot()
         blurRebuildCoroutine = null;
     }
 
-    private void RebuildBlurTextureIfNeeded(bool force = false, bool fullRebuild = false, BlurRegion dirtyRegion = default)
+    // private void RebuildBlurTextureIfNeeded(bool force = false, bool fullRebuild = false, BlurRegion dirtyRegion = default)
+    // {
+    //     if (focusBlurRawImage == null)
+    //         return;
+
+    //     if (!force && !rebuildBlurAfterEveryShot)
+    //         return;
+
+    //     if (workingTexture == null)
+    //         return;
+
+    //     EnsureBlurTextureInitialized();
+    //     if (workingBlurTexture == null)
+    //         return;
+
+    //     if (!fullRebuild && dirtyRegion.IsValid)
+    //     {
+    //         // UpdateBlurRegion(dirtyRegion);
+    //     }
+    //     else
+    //     {
+    //         Color[] blurred = CreateBlurredPixels(workingTexture.GetPixels(), workingTexture.width, workingTexture.height, blurRadiusForFocusLayer);
+    //         if (blurred == null)
+    //             return;
+
+    //         workingBlurTexture.SetPixels(blurred);
+    //         workingBlurTexture.Apply(false, false);
+    //     }
+
+    //     focusBlurRawImage.texture = workingBlurTexture;
+    // }
+
+private void RebuildBlurTextureIfNeeded(bool force = false, bool fullRebuild = false, BlurRegion dirtyRegion = default)
     {
         if (focusBlurRawImage == null)
             return;
@@ -1420,7 +1510,8 @@ private void UndoLastShot()
 
         if (!fullRebuild && dirtyRegion.IsValid)
         {
-            // UpdateBlurRegion(dirtyRegion);
+            // 恢复：执行光斑周边区域的极速局部模糊更新
+            UpdateBlurRegion(dirtyRegion);
         }
         else
         {
@@ -1434,7 +1525,6 @@ private void UndoLastShot()
 
         focusBlurRawImage.texture = workingBlurTexture;
     }
-
     private bool TryBuildExportSnapshot(string sessionId, string pngPath, out ExportSnapshot snapshot, out string message)
     {
         snapshot = default;

@@ -381,9 +381,29 @@ public void MoveHorizontalByDirection(float direction, float speedScale = 1f)
         CancelDiscCalibration();
     }
 
-    public float GetEffectivePixelToUm(float fallbackPixelToUm)
+public float GetEffectivePixelToUm(float fallbackPixelToUm)
     {
-        return hasDiscCalibration && calibratedPixelToUmOriginal > 0f ? calibratedPixelToUmOriginal : fallbackPixelToUm;
+        // 1. 优先使用医生手动定标的极高精度数据
+        if (hasDiscCalibration && calibratedPixelToUmOriginal > 0f)
+            return calibratedPixelToUmOriginal;
+
+        // 2. 核心修复：基于相机的物理视场角与有效像素总面积，自动精确推导 微米/像素 比例
+        if (validPixelCount > 0)
+        {
+            // 李斯丁眼模型半径 R = 11.39 mm = 11390 um
+            float R_um = 11390f; 
+            float phi_Camera = (GetCameraTotalDeg() * 0.5f) * Mathf.Deg2Rad;
+            
+            // 计算相机拍摄到的视网膜总物理表面积 (平方微米)
+            float areaRetinaUm2 = 2f * Mathf.PI * R_um * R_um * (1f - Mathf.Cos(phi_Camera));
+            
+            // 计算单个像素代表的物理面积，开方即得 um/px 
+            float pixelAreaUm2 = areaRetinaUm2 / Mathf.Max(1, validPixelCount);
+            return Mathf.Sqrt(pixelAreaUm2);
+        }
+
+        // 3. 极端情况下的安全兜底
+        return fallbackPixelToUm;
     }
 
     public void OnPointerDown(PointerEventData eventData)

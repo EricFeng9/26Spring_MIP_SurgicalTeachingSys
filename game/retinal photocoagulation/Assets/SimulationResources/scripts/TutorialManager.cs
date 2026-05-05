@@ -1,34 +1,28 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using TMPro;
 
 public class TutorialManager : MonoBehaviour
 {
     [Header("--- 教程基础组件 ---")]
     public GameObject tutorialCanvas;
     public GameObject darkOverlay;
-
-    [Header("--- Tutorial UI (教程的提示文字) ---")]
-    public GameObject step0_PressH;
-    public GameObject step1_ClickCalibration;
-    public GameObject step1_5_DrawLine;     
-    public GameObject step2_ControlPanel;
-    public GameObject step3_MiniMap;
-    public GameObject step4_InfoBar;
+    
+    [Header("--- 唯一的提示文本组件 (拖入 PromptText) ---")]
+    public TMP_Text promptText; 
 
     [Header("--- Target GameObjects (需要高亮的游戏真实物体) ---")]
     public Button calibrationButton;      
     public GameObject controlPanelArea;   
     public GameObject miniMapArea;        
     public GameObject infoBarArea;        
-    
-    [Header("--- 新增：眼底画面的容器 ---")]
-    public GameObject fovViewport; // 把 Panel_ViewportContainer 拖到这里
+    public GameObject fovViewport; 
+    public Button endSurgeryButton;       
 
     private int currentStep = 0;
     private FundusFovController fovController;
 
-    // 用一个类来记录所有被提层级的物体状态，支持同时高亮无限个物体！
     private class HighlightData
     {
         public GameObject target;
@@ -40,8 +34,8 @@ public class TutorialManager : MonoBehaviour
         public bool originalOverrideSorting;
     }
     
-    // 记录当前处于高亮状态的物体列表
     private List<HighlightData> activeHighlights = new List<HighlightData>();
+    private Image darkOverlayImage;
 
     void Start()
     {
@@ -49,13 +43,27 @@ public class TutorialManager : MonoBehaviour
         if (fovController != null)
             fovController.DiscCalibrationLineCompleted += OnCalibrationFinished;
 
-        if (darkOverlay != null) darkOverlay.SetActive(true);
-        
-        HideAllSteps();
-        if (step0_PressH != null) step0_PressH.SetActive(true);
+        if (darkOverlay != null) 
+        {
+            darkOverlay.SetActive(true);
+            darkOverlayImage = darkOverlay.GetComponent<Image>();
+        }
 
         if (calibrationButton != null)
             calibrationButton.onClick.AddListener(OnCalibrationButtonClicked);
+
+        // 【核心修复】：解决文字被高亮物体遮挡的问题
+        // 给提示文字单独加一个 Canvas，把层级设为 105（永远在最顶层）
+        if (promptText != null)
+        {
+            Canvas textCanvas = promptText.gameObject.GetComponent<Canvas>();
+            if (textCanvas == null) textCanvas = promptText.gameObject.AddComponent<Canvas>();
+            textCanvas.overrideSorting = true;
+            textCanvas.sortingOrder = 105; 
+        }
+            
+        // 游戏开始，直接进入第 0 步
+        GoToStep(0); 
     }
 
     void OnDestroy()
@@ -70,10 +78,11 @@ public class TutorialManager : MonoBehaviour
         {
             GoToStep(1);
         }
-        else if ((currentStep >= 2 && currentStep <= 4) && Input.GetMouseButtonDown(0))
+        // 【逻辑修改】：现在第 3 到第 6 步，全都是“点击屏幕任意位置继续/结束”
+        else if ((currentStep >= 3 && currentStep <= 6) && Input.GetMouseButtonDown(0))
         {
-            if (currentStep == 4) 
-                EndTutorial(); 
+            if (currentStep == 6) 
+                EndTutorial(); // 第 6 步点完直接结束，开始游戏！
             else 
                 GoToStep(currentStep + 1); 
         }
@@ -82,106 +91,79 @@ public class TutorialManager : MonoBehaviour
     private void GoToStep(int stepIndex)
     {
         currentStep = stepIndex;
-        HideAllSteps();
-        RemoveAllHighlights(); // 切换步骤前，清理上一步的所有高亮
 
         switch (currentStep)
         {
+            case 0:
+                promptText.text = "欢迎进入视网膜光凝手术模拟系统！\n\n为了获得更专业的沉浸式视野，请先按下键盘上的 <color=#47A5AE>[H]</color> 键展开设备控制面板。";
+                ChangeHighlights(); 
+                break;
+
             case 1:
-                if (step1_ClickCalibration != null) step1_ClickCalibration.SetActive(true);
-                // 【魔法在此】：把按钮 和 眼底画面 一起提到黑布上面！
-                HighlightObjects(calibrationButton.gameObject, fovViewport);
+                promptText.text = "手术的第一步是校准视盘比例，以确保激光光斑大小的精确度。\n\n请点击右侧操作台中的 <color=#47A5AE>[START DISC CALIBRATION]</color> 按钮进入标定模式。";
+                ChangeHighlights(calibrationButton.gameObject, fovViewport);
                 break;
+
             case 2:
-                if (step2_ControlPanel != null) step2_ControlPanel.SetActive(true);
-                HighlightObjects(controlPanelArea);
+                promptText.text = "现在进入视盘标定模式。\n\n你可以使用键盘的 <color=#47A5AE>[W][A][S][D]</color> 键移动视野找到视盘（眼底发亮的圆形区域）。\n然后在视盘边缘的两端分别点击一下，画出一条穿过视盘的直径线段即可完成校准。";
+                ChangeHighlights(fovViewport); 
+                if (darkOverlayImage != null) darkOverlayImage.raycastTarget = false; 
                 break;
+
             case 3:
-                if (step3_MiniMap != null) step3_MiniMap.SetActive(true);
-                HighlightObjects(miniMapArea);
+                // 【文案增加焦点引导】：非常醒目地告诉玩家失去焦点怎么办
+                promptText.text = "校准成功！这里是【激光控制台】。\n在这里调节激光的工作模式、波长、功率等参数。\n\n<color=#E75A31>💡 操作提示：当你点击这些UI控件后，键盘移动会暂时锁定。如需继续使用 [W][A][S][D] 移动视野，请在左侧手术画面任意位置点击鼠标左键找回焦点。</color>\n\n<size=80%><color=#AAAAAA>(点击屏幕任意位置继续)</color></size>";
+                ChangeHighlights(controlPanelArea);
                 break;
+
             case 4:
-                if (step4_InfoBar != null) step4_InfoBar.SetActive(true);
-                HighlightObjects(infoBarArea);
+                promptText.text = "这是【全局小地图 (Mini Map)】。\n\n在手术过程中，它会为你提供俯瞰视角，实时显示你当前的视野位置以及已经完成的激光击打点，防止漏打或重打。\n\n<size=80%><color=#AAAAAA>(点击屏幕任意位置继续)</color></size>";
+                ChangeHighlights(miniMapArea);
+                break;
+
+            case 5:
+                promptText.text = "这是【状态信息栏】。\n\n它会实时记录你的手术已用时间、总击打次数，并评估你上一发激光的能量等级。\n\n<size=80%><color=#AAAAAA>(点击屏幕任意位置继续)</color></size>";
+                ChangeHighlights(infoBarArea);
+                break;
+                
+            case 6:
+                // 【文案修改】：仅作介绍，点击任意位置结束教程
+                promptText.text = "所有操作完成后，点击此处的 <color=#E75A31>[END SURGERY]</color> 按钮即可结束手术。\n\n系统将自动进行结算，并为你生成本次手术的详细评估报告。\n\n<size=80%><color=#AAAAAA>(点击屏幕任意位置结束教程，正式开始手术！)</color></size>";
+                ChangeHighlights(endSurgeryButton.gameObject);
                 break;
         }
     }
 
     private void OnCalibrationButtonClicked()
     {
-        if (currentStep == 1)
-        {
-            RemoveAllHighlights();
-            if (step1_ClickCalibration != null) step1_ClickCalibration.SetActive(false);
-            if (step1_5_DrawLine != null) step1_5_DrawLine.SetActive(true);
-            
-            // 1.5 步：只需要高亮眼底画面，让玩家可以自由移动和画线。
-            // 此时其他 UI（包括标定按钮）都会被黑布阻挡，防止乱点出 Bug。
-            HighlightObjects(fovViewport);
-        }
+        if (currentStep == 1) GoToStep(2); 
     }
 
     private void OnCalibrationFinished(float distancePx)
     {
-        if (currentStep == 1)
+        if (currentStep == 2)
         {
-            if (step1_5_DrawLine != null) step1_5_DrawLine.SetActive(false);
-            GoToStep(2); 
+            if (darkOverlayImage != null) darkOverlayImage.raycastTarget = true; 
+            GoToStep(3); 
         }
     }
 
-    // --- 核心魔法：支持传入多个物体进行高亮 ---
-    private void HighlightObjects(params GameObject[] targets)
+    private void ChangeHighlights(params GameObject[] newTargets)
     {
-        foreach (var target in targets)
-        {
-            if (target == null) continue;
-
-            HighlightData data = new HighlightData { target = target };
-
-            data.canvas = target.GetComponent<Canvas>();
-            if (data.canvas == null)
-            {
-                data.canvas = target.AddComponent<Canvas>();
-                data.addedCanvas = true;
-            }
-            else
-            {
-                data.addedCanvas = false;
-                data.originalOverrideSorting = data.canvas.overrideSorting;
-                data.originalSortingOrder = data.canvas.sortingOrder;
-            }
-
-            data.canvas.overrideSorting = true;
-            data.canvas.sortingOrder = 101; 
-
-            data.raycaster = target.GetComponent<GraphicRaycaster>();
-            if (data.raycaster == null)
-            {
-                data.raycaster = target.AddComponent<GraphicRaycaster>();
-                data.addedRaycaster = true;
-            }
-            else
-            {
-                data.addedRaycaster = false;
-            }
-
-            activeHighlights.Add(data);
-        }
-    }
-
-    private void RemoveAllHighlights()
-    {
-        // 必须倒序清理组件，先销毁 Raycaster，再处理 Canvas，否则 Unity 会报错
+        List<HighlightData> toRemove = new List<HighlightData>();
         foreach (var data in activeHighlights)
         {
-            if (data.target == null) continue;
-
-            if (data.raycaster != null)
+            bool keep = false;
+            foreach (var target in newTargets)
             {
-                if (data.addedRaycaster) Destroy(data.raycaster);
+                if (data.target == target) { keep = true; break; }
             }
+            if (!keep) toRemove.Add(data);
+        }
 
+        foreach (var data in toRemove)
+        {
+            if (data.raycaster != null && data.addedRaycaster) Destroy(data.raycaster);
             if (data.canvas != null)
             {
                 if (data.addedCanvas) Destroy(data.canvas);
@@ -191,24 +173,55 @@ public class TutorialManager : MonoBehaviour
                     data.canvas.sortingOrder = data.originalSortingOrder;
                 }
             }
+            activeHighlights.Remove(data);
         }
-        activeHighlights.Clear();
-    }
 
-    private void HideAllSteps()
-    {
-        if (step0_PressH != null) step0_PressH.SetActive(false);
-        if (step1_ClickCalibration != null) step1_ClickCalibration.SetActive(false);
-        if (step1_5_DrawLine != null) step1_5_DrawLine.SetActive(false);
-        if (step2_ControlPanel != null) step2_ControlPanel.SetActive(false);
-        if (step3_MiniMap != null) step3_MiniMap.SetActive(false);
-        if (step4_InfoBar != null) step4_InfoBar.SetActive(false);
+        foreach (var target in newTargets)
+        {
+            if (target == null) continue;
+
+            bool alreadyHighlighted = false;
+            foreach (var data in activeHighlights)
+            {
+                if (data.target == target) { alreadyHighlighted = true; break; }
+            }
+            if (alreadyHighlighted) continue;
+
+            HighlightData newData = new HighlightData { target = target };
+
+            newData.canvas = target.GetComponent<Canvas>();
+            if (newData.canvas == null)
+            {
+                newData.canvas = target.AddComponent<Canvas>();
+                newData.addedCanvas = true;
+            }
+            else
+            {
+                newData.addedCanvas = false;
+                newData.originalOverrideSorting = newData.canvas.overrideSorting;
+                newData.originalSortingOrder = newData.canvas.sortingOrder;
+            }
+            newData.canvas.overrideSorting = true;
+            newData.canvas.sortingOrder = 101; 
+
+            newData.raycaster = target.GetComponent<GraphicRaycaster>();
+            if (newData.raycaster == null)
+            {
+                newData.raycaster = target.AddComponent<GraphicRaycaster>();
+                newData.addedRaycaster = true;
+            }
+            else
+            {
+                newData.addedRaycaster = false;
+            }
+
+            activeHighlights.Add(newData);
+        }
     }
 
     private void EndTutorial()
     {
-        RemoveAllHighlights();
-        HideAllSteps();
+        ChangeHighlights(); 
         if (darkOverlay != null) darkOverlay.SetActive(false);
         if (tutorialCanvas != null) tutorialCanvas.SetActive(false);
         else gameObject.SetActive(false);
