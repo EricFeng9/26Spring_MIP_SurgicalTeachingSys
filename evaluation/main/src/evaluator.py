@@ -619,23 +619,52 @@ def _save_overlay_visualization(
         "player_only": stem + "_player_overlay.png",
         "gt_only": stem + "_gt_overlay.png",
         "combined": stem + "_combined_overlay.png",
+        "player_only_crop": stem + "_player_overlay_crop.png",
+        "gt_only_crop": stem + "_gt_overlay_crop.png",
+        "combined_crop": stem + "_combined_overlay_crop.png",
+        "before_crop": stem + "_before_crop.png",
+        "after_crop": stem + "_after_crop.png",
     }
 
     default_base = gt_base_image_path or combined_base_image_path or player_base_image_path
     with Image.open(default_base) as coord_img:
         coordinate_image_size = coord_img.size
+    image_width, image_height = coordinate_image_size
 
     def save_layer(base_path: str | None, draw_layer, output_path: str) -> None:
-        base_img = Image.open(base_path or default_base).convert("RGBA")
+        with Image.open(base_path or default_base) as opened_img:
+            base_img = opened_img.convert("RGBA")
         overlay = Image.new("RGBA", coordinate_image_size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay, "RGBA")
         draw_layer(draw)
         if overlay.size != base_img.size:
             overlay = overlay.resize(base_img.size, Image.Resampling.BILINEAR)
-        Image.alpha_composite(base_img, overlay).save(output_path)
+        combined_img = Image.alpha_composite(base_img, overlay)
+        combined_img.save(output_path)
+        return combined_img
+
+    bounds_list: list[tuple[float, float, float, float]] = []
+    if target_poly is not None:
+        bounds_list.append(target_poly.bounds)
+    if player_area is not None:
+        bounds_list.append(player_area.bounds)
+    if not bounds_list:
+        raise ValueError("overlay 裁剪缺少有效几何区域")
+    minx = min(bounds[0] for bounds in bounds_list)
+    miny = min(bounds[1] for bounds in bounds_list)
+    maxx = max(bounds[2] for bounds in bounds_list)
+    maxy = max(bounds[3] for bounds in bounds_list)
+    crop_box = (
+        max(0, int(math.floor(minx))),
+        max(0, int(math.floor(miny))),
+        min(image_width, int(math.ceil(maxx))),
+        min(image_height, int(math.ceil(maxy))),
+    )
+    if crop_box[0] >= crop_box[2] or crop_box[1] >= crop_box[3]:
+        raise ValueError(f"overlay 裁剪区域无效: {crop_box}")
 
     # 1) Player only
-    save_layer(
+    player_overlay_img = save_layer(
         player_base_image_path,
         lambda draw: (
             _draw_player_layer(draw, player_area, valid_shots),
@@ -645,7 +674,7 @@ def _save_overlay_visualization(
     )
 
     # 2) GT only
-    save_layer(
+    gt_overlay_img = save_layer(
         gt_base_image_path,
         lambda draw: (
             _draw_gt_layer(draw, target_poly),
@@ -655,7 +684,7 @@ def _save_overlay_visualization(
     )
 
     # 3) Combined
-    save_layer(
+    combined_overlay_img = save_layer(
         combined_base_image_path,
         lambda draw: (
             _draw_player_layer(draw, player_area, valid_shots),
@@ -664,6 +693,15 @@ def _save_overlay_visualization(
         ),
         output_paths["combined"],
     )
+
+    player_overlay_img.crop(crop_box).save(output_paths["player_only_crop"])
+    gt_overlay_img.crop(crop_box).save(output_paths["gt_only_crop"])
+    combined_overlay_img.crop(crop_box).save(output_paths["combined_crop"])
+
+    with Image.open(combined_base_image_path or default_base) as before_img:
+        before_img.crop(crop_box).save(output_paths["before_crop"])
+    with Image.open(gt_base_image_path or default_base) as after_img:
+        after_img.crop(crop_box).save(output_paths["after_crop"])
     return output_paths
 
 

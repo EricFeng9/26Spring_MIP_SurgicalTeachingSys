@@ -61,28 +61,30 @@ def _sample_id_from_gt_path(question_path: str) -> str:
     return stem
 
 
-def run_sample_test() -> tuple[int, str]:
-    """读取测试配置，调用 main.py 完成本地评分 + AI 教学反馈。"""
-    project_root = _project_root()
-    config = _load_test_config(project_root)
-    llm_config = _require_section(config, "llm")
-    embedding_config = _require_section(config, "embedding")
-    rag_config = _require_section(config, "rag")
-    inputs = _require_section(config, "inputs")
-    outputs = _require_section(config, "outputs")
+def _load_sample_entries(project_root: str, inputs: dict) -> list[dict[str, str]]:
+    sample_entries = inputs.get("samples")
+    if not isinstance(sample_entries, list) or not sample_entries:
+        raise ValueError("测试配置 inputs.samples 必须是非空数组")
+    resolved_entries = []
+    for entry in sample_entries:
+        if not isinstance(entry, dict):
+            raise ValueError("测试配置 inputs.samples 的每一项都必须是对象")
+        sample_root = entry.get("sample_root")
+        case_info_json_path = entry.get("case_info_json_path")
+        if not isinstance(sample_root, str) or not sample_root:
+            raise ValueError("测试配置样本缺少有效 sample_root")
+        if not isinstance(case_info_json_path, str) or not case_info_json_path:
+            raise ValueError("测试配置样本缺少有效 case_info_json_path")
+        resolved_entries.append(
+            {
+                "sample_root": _resolve_path(project_root, sample_root),
+                "case_info_json_path": _resolve_path(project_root, case_info_json_path),
+            }
+        )
+    return resolved_entries
 
-    sample_root = _resolve_path(project_root, inputs["sample_root"])
-    question_path, player_path = _find_sample_paths(sample_root)
-    sample_id = _sample_id_from_gt_path(question_path)
-    base_config_path = _resolve_path(project_root, inputs["base_scoring_config_path"])
-    outputs_base_dir = _resolve_path(project_root, outputs["base_dir"])
-    output_dir = os.path.join(outputs_base_dir, sample_id)
-    runtime_config_path = os.path.join(output_dir, "runtime_config_for_test.json")
-    output_path = os.path.join(output_dir, "score_result.json")
-    teaching_feedback_path = os.path.join(output_dir, "teaching_feedback.json")
-    os.makedirs(output_dir, exist_ok=True)
 
-    # 调用侧注入所有重建超参数（便于快速迭代调参）
+def _build_runtime_config(base_config_path: str, runtime_config_path: str) -> None:
     with open(base_config_path, "r", encoding="utf-8") as f:
         runtime_config = json.load(f)
     scoring_policy = runtime_config.setdefault("scoring_policy", {})
@@ -106,25 +108,19 @@ def run_sample_test() -> tuple[int, str]:
     with open(runtime_config_path, "w", encoding="utf-8") as f:
         json.dump(runtime_config, f, ensure_ascii=False, indent=2)
 
-    status_code, msg, scoring_data, feedback_data = evaluate_with_ai_feedback(
-        case_info_json_path=_resolve_path(project_root, inputs["case_info_json_path"]),
-        player_json_path=player_path,
-        question_json_path=question_path,
-        rubric_md_path=_resolve_path(project_root, inputs["rubric_md_path"]),
-        prompt_path=_resolve_path(project_root, inputs["prompt_path"]),
-        chroma_db_path=_resolve_path(project_root, rag_config["chroma_db_path"]),
-        scoring_config_json_path=runtime_config_path,
-        scoring_output_json_path=output_path,
-        teaching_feedback_output_json_path=teaching_feedback_path,
-        llm_config=llm_config,
-        embedding_config=embedding_config,
-        param_tolerance_ratio={
-            "power": 0.25,
-            "spot_size": 0.25,
-            "exposure_time": 0.25,
-        },
-    )
 
+def _print_sample_result(
+    status_code: int,
+    msg: str,
+    question_path: str,
+    player_path: str,
+    output_dir: str,
+    runtime_config_path: str,
+    output_path: str,
+    teaching_feedback_path: str,
+    scoring_data: dict | None,
+    feedback_data,
+) -> None:
     if scoring_data:
         result = scoring_data
         dimensions = result.get("dimensions", {})
@@ -159,7 +155,72 @@ def run_sample_test() -> tuple[int, str]:
         print(f"反馈内容: {feedback_data}")
     else:
         print(f"评估链路失败: {msg}")
-    return status_code, msg
+
+
+def run_sample_test() -> tuple[int, str]:
+    """读取测试配置，顺序执行多样本评分 + AI 教学反馈。"""
+    project_root = _project_root()
+    config = _load_test_config(project_root)
+    llm_config = _require_section(config, "llm")
+    embedding_config = _require_section(config, "embedding")
+    rag_config = _require_section(config, "rag")
+    inputs = _require_section(config, "inputs")
+    outputs = _require_section(config, "outputs")
+    base_config_path = _resolve_path(project_root, inputs["base_scoring_config_path"])
+    outputs_base_dir = _resolve_path(project_root, outputs["base_dir"])
+    sample_entries = _load_sample_entries(project_root, inputs)
+
+    final_status_code = 1
+    final_msg = "全部样本评估成功"
+    for sample_entry in sample_entries:
+        sample_root = sample_entry["sample_root"]
+        case_info_json_path = sample_entry["case_info_json_path"]
+        question_path, player_path = _find_sample_paths(sample_root)
+        sample_id = _sample_id_from_gt_path(question_path)
+        output_dir = os.path.join(outputs_base_dir, sample_id)
+        runtime_config_path = os.path.join(output_dir, "runtime_config_for_test.json")
+        output_path = os.path.join(output_dir, "score_result.json")
+        teaching_feedback_path = os.path.join(output_dir, "teaching_feedback.json")
+        os.makedirs(output_dir, exist_ok=True)
+        _build_runtime_config(base_config_path, runtime_config_path)
+
+        status_code, msg, scoring_data, feedback_data = evaluate_with_ai_feedback(
+            case_info_json_path=case_info_json_path,
+            player_json_path=player_path,
+            question_json_path=question_path,
+            rubric_md_path=_resolve_path(project_root, inputs["rubric_md_path"]),
+            prompt_path=_resolve_path(project_root, inputs["prompt_path"]),
+            chroma_db_path=_resolve_path(project_root, rag_config["chroma_db_path"]),
+            scoring_config_json_path=runtime_config_path,
+            scoring_output_json_path=output_path,
+            teaching_feedback_output_json_path=teaching_feedback_path,
+            llm_config=llm_config,
+            embedding_config=embedding_config,
+            param_tolerance_ratio={
+                "power": 0.25,
+                "spot_size": 0.25,
+                "exposure_time": 0.25,
+            },
+        )
+
+        print(f"===== 样本 {sample_id} =====")
+        _print_sample_result(
+            status_code=status_code,
+            msg=msg,
+            question_path=question_path,
+            player_path=player_path,
+            output_dir=output_dir,
+            runtime_config_path=runtime_config_path,
+            output_path=output_path,
+            teaching_feedback_path=teaching_feedback_path,
+            scoring_data=scoring_data,
+            feedback_data=feedback_data,
+        )
+        if status_code != 1:
+            final_status_code = status_code
+            final_msg = f"样本 {sample_id} 评估失败: {msg}"
+
+    return final_status_code, final_msg
 
 if __name__ == "__main__":
     run_sample_test()

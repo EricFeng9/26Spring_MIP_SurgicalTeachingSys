@@ -10,7 +10,12 @@
   "debug_visualization_paths": {
     "player_only": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_player_overlay.png",
     "gt_only": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_gt_overlay.png",
-    "combined": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_combined_overlay.png"
+    "combined": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_combined_overlay.png",
+    "player_only_crop": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_player_overlay_crop.png",
+    "gt_only_crop": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_gt_overlay_crop.png",
+    "combined_crop": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_combined_overlay_crop.png",
+    "before_crop": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_before_crop.png",
+    "after_crop": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_after_crop.png"
   },
   "_debug_visualization_paths": "可视化图路径：player_only / gt_only / combined",
   "debug_visualization_path": "/Users/ericfeng/Documents/Sustech/26Spring-MIP/26Spring_MIP_SurgicalTeachingSys/evaluation/test/output/3976863/score_result_combined_overlay.png",
